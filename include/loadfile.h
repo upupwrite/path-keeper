@@ -1,0 +1,89 @@
+#pragma once
+#include <json/writer.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <ostream>
+#include <string>
+#include <vector>
+
+#include "colors.h"
+#include "json/value.h"
+
+namespace Achieve
+{
+const std::string CONFIG_FILE = []() -> std::string
+{
+    const char* home = std::getenv("HOME");
+    if (home)
+    {
+        return std::string(home) + "/.pk.json";
+    }
+    return "./.pk.json";
+}();
+}  // namespace Achieve
+
+class JsonFormatter
+{
+private:
+    std::ostream& os_;
+    int indent_;
+
+public:
+    JsonFormatter(std::ostream& os, int indent = 0) : os_(os), indent_(indent)
+    {
+    }
+
+    ~JsonFormatter() = default;  // 使用默认析构函数
+
+    void writeIndent();
+    void writeString(const std::string& str);
+    void writeValue(const Json::Value& value, int extraIndent);
+    void writeArray(const Json::Value& array, int extraIndent);
+    void writeObject(const Json::Value& obj, int extraIndent);
+    void writeObject(const Json::Value& obj, int extraIndent,
+                     const std::vector<std::string>& keyOrder);
+};
+
+class File
+{
+public:
+    std::string CONFIG_FILE;
+    static std::vector<std::string> path_keys_order;
+    File();
+    Json::Value loadConfig();
+    void saveConfig(const Json::Value& config);
+
+    void load_key_order();
+
+    std::vector<std::string> get_valid_directories(const Json::Value& paths);
+
+    int get_directory_index_by_display_number(int display_num,
+                                              const Json::Value& paths);
+
+    int get_display_number_by_directory_index(int orig_index,
+                                              const Json::Value& paths);
+};
+
+class Editor
+{
+public:
+    Editor();
+    File file;
+    const std::string CONFIG_FILE;
+    const std::vector<std::string> COMMON_EDITORS;
+
+    Json::Value config = file.loadConfig();
+    void printMenu(
+        const std::vector<std::pair<std::string, std::string>>& editors);
+    std::string getUserChoice(
+        const std::vector<std::pair<std::string, std::string>>& editors);
+    std::string findInPath(const std::string& prog);
+    std::vector<std::pair<std::string, std::string>> getAvailableEditors();
+    std::string getEditor();
+    void setEditor(const std::string& newEditor);
+};
