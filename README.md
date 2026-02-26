@@ -1,49 +1,48 @@
-# P(ath) K(eeper) Command Tool - 多功能命令行工具
-## 项目概述
+# P(ath) K(eeper) Command Tool - Multi-functional Command Line Tool  
+## Project Overview  
 
-PathKeeper 是一个命令行工具，用于：
+PathKeeper is a command-line tool designed for: 
 
-- 记录常用命令
-- 快速切换和执行命令
-- 支持配置终端类型
+- Recording frequently used commands
+- Quickly switching and executing commands
+- Supporting terminal type configuration
 
-## 功能特性
+## Features  
 
-- **命令记录**：可添加、查看、执行历史记录 
-- **多级分类**：支持命令分类管理（如 1.2 表示第一类第二条命令）
-- **配置管理**：可配置默认执行终端 
+- **Command Recording**: Add, view, and execute command history 
+- **Multi-level Categorization**: Supports command categorization (e.g., 1.2 represents the second command under the first category)  
+- **Configuration Management**: Configurable default execution terminal 
 
+## Usage Tips  
 
-## 使用技巧
+1. **Quick Execution**: Use the `-p` parameter to quickly execute the most recently used command  
+2. **Categorization Management**: Properly categorize commands when adding them for easier retrieval later  
 
-1. **快速执行**：使用 `-p` 参数可以快速执行最近使用的命令 
-2. **分类管理**：添加命令时合理分类，便于后续查找
+## Example Workflow  
 
-## 示例工作流
+```bash  
+# Execute the default command  
+pk  
 
-```bash
-#执行默认命令
-pk
+# Add development-related commands  
+pk -a  
 
-#添加开发相关命令
-pk -a
+# View all records  
+pk -s  
 
-#查看所有记录
-pk -s
+# Execute the first command  
+pk -e 1  
+```  
 
-#执行第一条命令
-pk -e 1
-```
+## Notes  
 
-## 注意事项
+1. Command records are saved in a local file (`~/.pk.json`). Remember to back up important records  
+2. When using the `-e` parameter, ensure the index is valid  
 
-1. 命令记录保存在本地文件(`~ /.pk.json`)中，注意备份重要记录 
-2. 使用 `-e` 参数时，请确保序号有效
+## Installation Instructions  
 
-## 安装说明
-
-```bash
-# 安装依赖
+```bash  
+# Install dependencies
 # Ubuntu/Debian:
 sudo apt update
 sudo apt install cmake pkg-config libjsoncpp-dev build-essential
@@ -54,35 +53,36 @@ sudo yum install cmake pkgconfig jsoncpp-devel gcc-c++
 # Fedora
 sudo dnf install cmake pkgconfig jsoncpp-devel gcc-c++
 
-# 编译项目
-mkdir build && cd build
-cmake ..
-make
 
-# 安装到系统（需要sudo权限）
-sudo make install
-```
-## 卸载方法
+# Compile the project  
+mkdir build && cd build  
+cmake ..  
+make  
 
-```bash
-# 在build下运行
-sudo make uninstall
-```
+# Install to the system (requires sudo privileges)  
+sudo make install  
+```  
 
-或者手动卸载：
+## Uninstallation Method  
 
-```bash
-# 手动删除安装的文件
-sudo rm /usr/local/bin/pk
-```
+```bash  
+# Run in the build directory  
+sudo make uninstall  
+```  
 
+Alternatively, uninstall manually:  
 
-## 贡献指南
+```bash  
+# Manually delete installed files  
+sudo rm /usr/local/bin/pk  
+```  
 
-欢迎贡献代码和改进建议！请遵循开源社区规范，并提交 PR 或 Issue。
+## Contribution Guidelines  
 
-## 开源许可
+Contributions and improvement suggestions are welcome! Please follow open-source community norms and submit PRs or Issues.  
 
-本项目遵循开源协议，详细请查看项目根目录下的 `LICENSE` 文件。
+## Open Source License  
 
-如需进一步了解代码细节，可查看对应模块的源码。
+This project adheres to an open-source license. For details, please refer to the `LICENSE` file in the project root directory.  
+
+For further details about the code, you can review the source code of the corresponding modules.
