@@ -144,3 +144,4 @@ pk.build/
 pk.dist/
 pk.onefile-build/
 .clang-format
+CMakeLists.txt.user

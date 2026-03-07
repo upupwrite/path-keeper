@@ -1,5 +1,6 @@
 #include "interaction.h"
 
+#include <QCoreApplication>
 #include <iostream>
 #include <string>
 
@@ -11,8 +12,9 @@ Interaction::Interaction() {}
 
 void Interaction::dir()
 {
-    std::cout << "当前所在的目录:" << Colors::BLUE << pk.cwd << Colors::RESET
-              << std::endl;
+    std::cout << QCoreApplication::translate("Interaction", "当前所在的目录:")
+                     .toStdString()
+              << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
 }
 
 void Interaction::main(int argc, char **argv)
@@ -144,9 +146,14 @@ void Interaction::main(int argc, char **argv)
         }
         else
         {
-            std::cout << Colors::RED << "未知选项: " << option << Colors::RESET
-                      << std::endl;
-            std::cout << "用法: pk [-a | -s | -p "
+            std::cout << Colors::RED
+                      << QCoreApplication::translate("Interaction",
+                                                     "未知选项: ")
+                             .toStdString()
+                      << option << Colors::RESET << std::endl;
+            std::cout << QCoreApplication::translate("Interaction", "用法")
+                             .toStdString()
+                      << ": pk [-a | -s | -p "
                          "| -c | -e "
                          "[index]]"
                       << std::endl;
@@ -154,7 +161,9 @@ void Interaction::main(int argc, char **argv)
     }
     catch (const std::exception &e)
     {
-        std::cerr << Colors::RED << "错误: " << e.what() << Colors::RESET
-                  << std::endl;
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("Interaction", "错误: ")
+                         .toStdString()
+                  << e.what() << Colors::RESET << std::endl;
     }
 }
