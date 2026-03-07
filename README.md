@@ -1,11 +1,10 @@
 # P(ath) K(eeper) Command Tool - Multi-functional Command Line Tool  
+
 ## Project Overview  
 
-<div style="background-color:#f9f9f9; border-left: 4px solid #007acc; padding: 10px; margin: 10px 0;">
-  <strong>Tips:</strong>This branch would need extra packages(like Qt) to complete internationalization.
-  If you do not want to build with Qt indeed, you can switch to main branch.
-</div>
-
+> [!TIP]
+>This branch would need extra packages(like Qt) to complete internationalization.  
+>If you do not want to build with Qt indeed, you can switch to main branch.  
 
 PathKeeper is a command-line tool designed for: 
 
