@@ -88,12 +88,12 @@ int PathKeeper::shellCommand(const std::string& command, const std::string& cwd)
         if (!cwd.empty())
         {
             std::string resolved_cwd = cwd;
-            if (resolved_cwd == "~")
+            // 处理以 ~ 开头的路径（支持 ~ 和 ~/...）
+            if (!resolved_cwd.empty() && resolved_cwd[0] == '~')
             {
                 const char* home = getenv("HOME");
                 if (home == nullptr)
                 {
-                    // 如果HOME环境变量不存在，可尝试通过getpwuid获取
                     struct passwd* pw = getpwuid(getuid());
                     if (pw && pw->pw_dir)
                     {
@@ -105,15 +105,25 @@ int PathKeeper::shellCommand(const std::string& command, const std::string& cwd)
                         exit(EXIT_FAILURE);
                     }
                 }
-                resolved_cwd = home;
+
+                if (resolved_cwd == "~")
+                {
+                    resolved_cwd = home;
+                }
+                else if (resolved_cwd.size() > 1 && resolved_cwd[1] == '/')
+                {
+                    // 将 ~/ 替换为 home 目录
+                    resolved_cwd = std::string(home) + resolved_cwd.substr(1);
+                }
+                // 其他形如 ~username 的情况未作处理，保持原样（可根据需要扩展）
             }
+
             if (chdir(resolved_cwd.c_str()) == -1)
             {
                 perror("chdir failed");
                 exit(EXIT_FAILURE);
             }
         }
-
         // 恢复默认的信号处理
         signal(SIGINT, SIG_DFL);
 

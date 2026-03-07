@@ -11,7 +11,7 @@
 
 PathKeeper::PathKeeper()
 {
-    // 获取当前工作目录
+    // Get current working directory
     char buffer[1024];
     if (getcwd(buffer, sizeof(buffer)) != nullptr)
     {
@@ -61,7 +61,7 @@ void PathKeeper::addRecord()
         displayCommands(commands);
     }
 
-    // 使用 readline 读取命令（带补全）
+    // Use readline to read commands (with completion)
     std::string cmd =
         ReadlineHelper::read_line(Colors::CYAN + "请输入命令:" + Colors::RESET);
 
@@ -110,7 +110,7 @@ void PathKeeper::runRecent()
         int idx2 = config["recent"][1].asInt();
         Json::Value paths = config["path"];
 
-        // 使用原始索引检查
+        // Check using the original index
         if (orig_idx1 < 0 ||
             orig_idx1 >= static_cast<int>(file.path_keys_order.size()))
         {
