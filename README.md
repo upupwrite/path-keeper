@@ -1,6 +1,12 @@
 # P(ath) K(eeper) Command Tool - Multi-functional Command Line Tool  
 ## Project Overview  
 
+<div style="background-color:#f9f9f9; border-left: 4px solid #007acc; padding: 10px; margin: 10px 0;">
+  <strong>Tips:</strong>This branch would need extra packages(like Qt) to complete internationalization.
+  If you do not want to build with Qt indeed, you can switch to main branch.
+</div>
+
+
 PathKeeper is a command-line tool designed for: 
 
 - Recording frequently used commands
@@ -52,6 +58,10 @@ sudo yum install cmake pkgconfig jsoncpp-devel gcc-c++
 
 # Fedora
 sudo dnf install cmake pkgconfig jsoncpp-devel gcc-c++
+
+# And install Qt develop environment
+# Ubuntu/Debian:
+sudo apt install qt5-qmake qt5-default qt5-qmlviewer qt5-quickcontrols2-dev
 
 
 # Compile the project  
