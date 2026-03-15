@@ -62,7 +62,7 @@ void Interaction::main(int argc, char **argv)
             dir();
             if (argc > 2)
             {
-                pk.selectRun(argv[2]);
+                pk.selectRun(argv[2], true, false);
             }
             else
             {
