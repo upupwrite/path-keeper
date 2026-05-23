@@ -12,443 +12,109 @@
 
 PathKeeper::PathKeeper()
 {
-    // Get current working directory
     char buffer[1024];
     if (getcwd(buffer, sizeof(buffer)) != nullptr)
-    {
         cwd = buffer;
-    }
     else
-    {
         cwd = ".";
-    }
 
     file.load_key_order();
+    logger = Logger(file.loadConfig()); // 日志配置从 config 中读取
 }
 
-void PathKeeper::addRecord()
+void PathKeeper::outputCommand(const std::string& cmd)
 {
-    Json::Value config = file.loadConfig();
-    // 初始化 readline（只需调用一次，建议放在程序启动时）
-    static bool initialized = false;
-    if (!initialized)
-    {
-        ReadlineHelper::initialize();
-        initialized = true;
-    }
-
-    std::string directory = ReadlineHelper::read_line(
-        Colors::CYAN +
-        QCoreApplication::translate("addRecord", "请输入记录目录:")
-            .toStdString() +
-        Colors::RESET);
-
-    if (directory.empty())
-    {
-        std::cout << Colors::YELLOW
-                  << QCoreApplication::translate("addRecord", "目录不能为空!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return;
-    }
-
-    if (directory == ".")
-    {
-        directory = cwd;
-    }
-
-    // 检查目录是否已存在
-    Json::Value commands = Json::arrayValue;
-
-    if (fs::exists(directory) && fs::is_directory(directory))
-    {
-        std::cout << Colors::GREEN << directory << Colors::RESET << std::endl;
-        commands = config["path"][directory];
-        displayCommands(commands);
-    }
-
-    // Use readline to read commands (with completion)
-    std::string cmd = ReadlineHelper::read_line(
-        Colors::CYAN +
-        QCoreApplication::translate("addRecord", "请输入命令:").toStdString() +
-        Colors::RESET);
-
-    if (cmd.empty() && commands.empty())
-    {
-        std::string default_command = "ls -l";
-        std::cout << QCoreApplication::translate("addRecord", "使用默认命令: ")
-                         .toStdString()
-                  << default_command << std::endl;
-        commands.append(default_command);
-    }
-    else if (!cmd.empty())
-    {
-        commands.append(cmd);
-    }
-
-    config["path"][directory] = commands;
-    if (!config.isMember("shell") || config["shell"].isNull())
-    {
-        config["shell"] = "sh";
-    }
-
-    file.saveConfig(config);
-    std::cout
-        << Colors::GREEN
-        << QCoreApplication::translate("addRecord", "记录已保存!").toStdString()
-        << Colors::RESET << std::endl;
-}
-
-void PathKeeper::runRecent()
-{
-    Json::Value config = file.loadConfig();
-
-    if (config["recent"].isNull())
-    {
-        std::cout << Colors::YELLOW
-                  << QCoreApplication::translate("runRecent", "没有最近记录!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return;
-    }
-
-    if (!config["recent"].isArray() || config["recent"].size() != 2)
-    {
-        std::cout << Colors::RED
-                  << QCoreApplication::translate("runRecent",
-                                                 "最近记录格式无效!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return;
-    }
-
-    try
-    {
-        int orig_idx1 = config["recent"][0].asInt();
-        int idx2 = config["recent"][1].asInt();
-        Json::Value paths = config["path"];
-
-        // Check using the original index
-        if (orig_idx1 < 0 ||
-            orig_idx1 >= static_cast<int>(file.path_keys_order.size()))
-        {
-            std::cout << Colors::RED
-                      << QCoreApplication::translate("runRecent",
-                                                     "最近记录无效!")
-                             .toStdString()
-                      << Colors::RESET << std::endl;
-            return;
-        }
-
-        std::string directory = file.path_keys_order[orig_idx1];
-        if (!paths.isMember(directory))
-        {
-            std::cout << Colors::RED
-                      << QCoreApplication::translate(
-                             "runRecent", "最近记录对应的目录已不存在!")
-                             .toStdString()
-                      << Colors::RESET << std::endl;
-            return;
-        }
-
-        Json::Value commands = paths[directory];
-
-        if (idx2 < 0 || idx2 >= static_cast<int>(commands.size()))
-        {
-            std::cout << Colors::RED
-                      << QCoreApplication::translate("runRecent",
-                                                     "最近记录无效!")
-                             .toStdString()
-                      << Colors::RESET << std::endl;
-            return;
-        }
-
-        std::string command = commands[idx2].asString();
-        runCommand(directory, command);
-    }
-    catch (const std::exception &)
-    {
-        std::cout << Colors::RED
-                  << QCoreApplication::translate("runRecent", "最近记录无效!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-    }
-}
-
-Json::Value PathKeeper::showRecord(const bool show)
-{
-    Json::Value config = file.loadConfig();
-    Json::Value paths = config["path"];
-    if (paths.empty())
-    {
-        std::cout << Colors::YELLOW
-                  << QCoreApplication::translate("showRecord", "没有记录!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return Json::Value();
-    }
-    if (show)
-    {
-        int i = 1;
-        std::vector<std::string> valid_dirs = file.get_valid_directories(paths);
-
-        for (const auto &directory : valid_dirs)
-        {
-            std::cout << Colors::BLUE << "[" << i << "]" << Colors::RESET << " "
-                      << Colors::GREEN << directory << Colors::RESET
-                      << std::endl;
-
-            Json::Value commands = paths[directory];
-
-            displayCommands(commands, i);
-
-            i++;
-        }
-    }
-
-    displayRecentMark(config, paths);
-    return config;
-}
-
-void PathKeeper::runCommand(const std::string &directory,
-                            const std::string &command)
-{
-    std::cout
-        << Colors::GREEN
-        << QCoreApplication::translate("runCommand", "目录:").toStdString()
-        << Colors::RESET << " " << directory << std::endl;
-    std::cout
-        << Colors::GREEN
-        << QCoreApplication::translate("runCommand", "命令:").toStdString()
-        << Colors::RESET << " " << Colors::CYAN << command << Colors::RESET
-        << std::endl;
-    std::cout
-        << Colors::YELLOW
-        << QCoreApplication::translate("runCommand", "执行命令: ").toStdString()
-        << command << Colors::RESET << std::endl;
-
-    int ret = shellCommand(command, directory);
-
-    std::cout << Colors::BOLD << "return: " << ret << Colors::RESET
-              << std::endl;
-}
-
-void PathKeeper::setRecent(const std::string &cmd_index)
-{
-    Json::Value config = showRecord();
-    if (config.isNull())
-        return;
-
-    Json::Value paths = config["path"];
-    std::string index_str = getInputIndex(
-        cmd_index, QCoreApplication::translate("setRecent", "请输入目标编号: ")
-                       .toStdString());
-    if (index_str.empty())
-        return;
-
-    processIndexSelection(index_str, paths, config, false);
-}
-
-void PathKeeper::selectRun(const std::string &cmd_index, const bool set_recent,
-                           const bool show)
-{
-    Json::Value config = showRecord(show);
-    if (config.isNull())
-        return;
-
-    Json::Value paths = config["path"];
-    if (paths.empty())
-    {
-        std::cout << Colors::YELLOW
-                  << QCoreApplication::translate("selectRun", "没有记录!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return;
-    }
-
-    std::string index_str = getInputIndex(
-        cmd_index,
-        QCoreApplication::translate("selectRun", "请输入要执行的编号: ")
-            .toStdString());
-    if (index_str.empty())
-    {
-        runRecent();
-        return;
-    }
-
-    processIndexSelection(index_str, paths, config, true, set_recent);
-}
-
-void PathKeeper::runPoint(const std::string &cmd_index)
-{
-    if (cmd_index.empty())
-    {
-        selectRun(cmd_index, false, true);
-    }
+    if (!cmd.empty())
+        std::cout << cmd << std::endl;
     else
-    {
-        selectRun(cmd_index, false, false);
-    }
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("PathKeeper",
+                                                 "无法生成命令")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
 }
 
-void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
-{
-    for (Json::ArrayIndex j = 0; j < commands.size(); j++)
-    {
-        if (parent_index > 0)
-        {
-            std::cout << "    " << Colors::CYAN << "[" << parent_index << "."
-                      << (j + 1) << "]" << Colors::RESET << " "
-                      << commands[j].asString() << std::endl;
-        }
-        else
-        {
-            std::cout << "    " << Colors::CYAN << "[" << (j + 1) << "]"
-                      << Colors::RESET << " " << commands[j].asString()
-                      << std::endl;
-        }
-    }
-}
-
-void PathKeeper::displayRecentMark(const Json::Value &config,
-                                   const Json::Value &paths)
-{
-    if (!config["recent"].isNull() && config["recent"].isArray() &&
-        config["recent"].size() == 2)
-    {
-        int orig_idx1 = config["recent"][0].asInt();
-        int idx2 = config["recent"][1].asInt();
-
-        int display_num =
-            file.get_display_number_by_directory_index(orig_idx1, paths);
-        if (display_num != -1)
-        {
-            std::string recent_dir = file.path_keys_order[orig_idx1];
-            Json::Value commands = paths[recent_dir];
-            if (idx2 >= 0 && idx2 < static_cast<int>(commands.size()))
-            {
-                std::cout << Colors::YELLOW
-                          << QCoreApplication::translate("displayRecentMark",
-                                                         "最近执行")
-                                 .toStdString()
-                          << ": [" << display_num << "." << (idx2 + 1) << "] "
-                          << recent_dir << Colors::RESET << std::endl;
-            }
-        }
-    }
-}
-
-std::string PathKeeper::getInputIndex(const std::string &provided_index,
-                                      const std::string &prompt)
+std::string PathKeeper::getInputIndex(const std::string& provided_index,
+                                      const std::string& prompt)
 {
     if (!provided_index.empty())
         return provided_index;
 
-    std::cout << Colors::CYAN << prompt << Colors::RESET;
+    std::cerr << Colors::CYAN << prompt << Colors::RESET;
     std::string index_str;
     std::getline(std::cin, index_str);
     return index_str;
 }
 
-bool PathKeeper::parseIndex(const std::string &index_str,
-                            std::vector<std::string> &valid_dirs,
-                            Json::Value &paths, std::string &directory,
-                            int &cmd_idx)
+// 沿用原有解析逻辑，但适配新结构
+bool PathKeeper::parseIndex(const std::string& index_str,
+                            std::vector<std::string>& valid_dirs,
+                            Json::Value& paths,
+                            std::string& directory,
+                            int& cmd_idx)
 {
-    if (index_str.find('.') != std::string::npos)
-    {
-        size_t dot_pos = index_str.find('.');
-        std::string part1 = index_str.substr(0, dot_pos);
-        std::string part2 = index_str.substr(dot_pos + 1);
-
-        try
-        {
+    if (index_str.find('.') != std::string::npos) {
+        size_t dot = index_str.find('.');
+        std::string part1 = index_str.substr(0, dot);
+        std::string part2 = index_str.substr(dot + 1);
+        try {
             int display_num = std::stoi(part1);
             cmd_idx = std::stoi(part2) - 1;
-
-            if (display_num < 1 ||
-                display_num > static_cast<int>(valid_dirs.size()))
+            if (display_num < 1 || display_num > (int)valid_dirs.size())
                 return false;
-
             directory = valid_dirs[display_num - 1];
-            Json::Value commands = paths[directory];
-
-            return (cmd_idx >= 0 &&
-                    cmd_idx < static_cast<int>(commands.size()));
-        }
-        catch (const std::exception &)
-        {
+            Json::Value cmds = paths[directory]["cmds"];
+            return (cmd_idx >= 0 && cmd_idx < (int)cmds.size());
+        } catch (...) {
             return false;
         }
-    }
-    else
-    {
-        try
-        {
+    } else {
+        try {
             int display_num = std::stoi(index_str);
-
-            if (display_num < 1 ||
-                display_num > static_cast<int>(valid_dirs.size()))
+            if (display_num < 1 || display_num > (int)valid_dirs.size())
                 return false;
-
             directory = valid_dirs[display_num - 1];
-            Json::Value commands = paths[directory];
-
-            if (commands.size() > 1)
-            {
-                std::cout << Colors::GREEN
+            Json::Value cmds = paths[directory]["cmds"];
+            if (cmds.size() > 1) {
+                std::cerr << Colors::GREEN
                           << QCoreApplication::translate("parseIndex", "目录:")
                                  .toStdString()
                           << Colors::RESET << " " << directory << std::endl;
-                displayCommands(commands);
-
-                std::cout << Colors::CYAN
-                          << QCoreApplication::translate("parseIndex",
-                                                         "请选择命令编号: ")
+                displayCommands(cmds);
+                std::cerr << Colors::CYAN
+                          << QCoreApplication::translate("parseIndex", "请选择命令编号: ")
                                  .toStdString()
                           << Colors::RESET;
                 std::string cmd_idx_str;
                 std::getline(std::cin, cmd_idx_str);
-
-                try
-                {
+                try {
                     cmd_idx = std::stoi(cmd_idx_str) - 1;
-                    return (cmd_idx >= 0 &&
-                            cmd_idx < static_cast<int>(commands.size()));
-                }
-                catch (const std::exception &)
-                {
+                    return (cmd_idx >= 0 && cmd_idx < (int)cmds.size());
+                } catch (...) {
                     return false;
                 }
-            }
-            else
-            {
+            } else {
                 cmd_idx = 0;
                 return true;
             }
-        }
-        catch (const std::exception &)
-        {
+        } catch (...) {
             return false;
         }
     }
 }
 
-void PathKeeper::saveRecentRecord(Json::Value &config,
-                                  const std::string &directory, int cmd_idx)
+void PathKeeper::saveRecentRecord(Json::Value& config,
+                                  const std::string& directory,
+                                  int cmd_idx)
 {
     int orig_idx = -1;
-    for (size_t i = 0; i < file.path_keys_order.size(); i++)
-    {
-        if (file.path_keys_order[i] == directory)
-        {
+    for (size_t i = 0; i < file.path_keys_order.size(); i++) {
+        if (file.path_keys_order[i] == directory) {
             orig_idx = i;
             break;
         }
     }
-
-    if (orig_idx != -1)
-    {
+    if (orig_idx != -1) {
         Json::Value recent(Json::arrayValue);
         recent.append(orig_idx);
         recent.append(cmd_idx);
@@ -457,59 +123,269 @@ void PathKeeper::saveRecentRecord(Json::Value &config,
     }
 }
 
-void PathKeeper::processIndexSelection(const std::string &index_str,
-                                       Json::Value &paths, Json::Value &config,
-                                       bool execute_command, bool set_recent)
+void PathKeeper::processIndexSelection(const std::string& index_str,
+                                       Json::Value& paths,
+                                       Json::Value& config,
+                                       bool output_command,
+                                       bool set_recent)
 {
     std::vector<std::string> valid_dirs = file.get_valid_directories(paths);
     std::string directory;
     int cmd_idx;
-
-    if (!parseIndex(index_str, valid_dirs, paths, directory, cmd_idx))
-    {
-        std::cout << Colors::RED
-                  << QCoreApplication::translate("processIndexSelection",
-                                                 "无效编号!")
+    if (!parseIndex(index_str, valid_dirs, paths, directory, cmd_idx)) {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("processIndexSelection", "无效编号!")
                          .toStdString()
                   << Colors::RESET << std::endl;
         return;
     }
 
-    Json::Value commands = paths[directory];
-    std::string command = commands[cmd_idx].asString();
+    Json::Value cmds = paths[directory]["cmds"];
+    std::string command = cmds[cmd_idx].asString();
 
-    if (execute_command)
-    {
-        if (set_recent)
-        {
-            saveRecentRecord(config, directory, cmd_idx);
-        }
+    if (set_recent)
+        saveRecentRecord(config, directory, cmd_idx);
 
-        runCommand(directory, command);
+    if (output_command) {
+        std::string final_cmd = CommandBuilder::build(directory, command, logger);
+        outputCommand(final_cmd);
+    } else {
+        // 仅设置 recent 的情况，显示确认信息
+        std::cerr << QCoreApplication::translate("processIndexSelection", "配置完成").toStdString()
+                  << std::endl;
     }
-    else
-    {
-        if (set_recent)
-        {
-            saveRecentRecord(config, directory, cmd_idx);
-        }
+}
 
-        int orig_idx = -1;
-        for (size_t i = 0; i < file.path_keys_order.size(); i++)
-        {
-            if (file.path_keys_order[i] == directory)
-            {
-                orig_idx = i;
-                break;
+// -------- 公有方法 ---------
+
+void PathKeeper::addRecord()
+{
+    Json::Value config = file.loadConfig();
+    static bool readline_init = false;
+    if (!readline_init) {
+        ReadlineHelper::initialize();
+        readline_init = true;
+    }
+
+    std::string directory = ReadlineHelper::read_line(
+        Colors::CYAN +
+        QCoreApplication::translate("addRecord", "请输入记录目录:").toStdString() +
+        Colors::RESET);
+    if (directory.empty()) {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("addRecord", "目录不能为空!").toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
+    if (directory == ".") directory = cwd;
+
+    Json::Value& path_obj = config["path"];
+    if (!path_obj.isMember(directory))
+        path_obj[directory] = Json::Value(Json::objectValue);
+    Json::Value& entry = path_obj[directory];
+    if (!entry.isMember("cmds"))
+        entry["cmds"] = Json::arrayValue;
+
+    Json::Value& cmds = entry["cmds"];
+    if (fs::exists(directory) && fs::is_directory(directory)) {
+        std::cerr << Colors::GREEN << directory << Colors::RESET << std::endl;
+        displayCommands(cmds);
+    }
+
+    std::string cmd = ReadlineHelper::read_line(
+        Colors::CYAN +
+        QCoreApplication::translate("addRecord", "请输入命令 (回车选择单行/编辑器):").toStdString() +
+        Colors::RESET);
+
+    if (cmd.empty()) {
+        // 多行编辑器模式
+        std::cerr << "按 'e' 打开编辑器，其他键输入单行: ";
+        std::string choice;
+        std::getline(std::cin, choice);
+        if (choice == "e") {
+            // 创建临时文件并打开编辑器
+            char tmpname[] = "/tmp/pk_cmd_XXXXXX";
+            int fd = mkstemp(tmpname);
+            if (fd == -1) {
+                std::cerr << "无法创建临时文件" << std::endl;
+                return;
             }
+            close(fd);
+            Editor editor;
+            std::string editor_cmd = editor.getEditor();
+            if (editor_cmd.empty()) {
+                std::cerr << "未设置编辑器，请先执行 pk config -editor" << std::endl;
+                unlink(tmpname);
+                return;
+            }
+            std::string sys_cmd = editor_cmd + " " + tmpname;
+            int ret = system(sys_cmd.c_str());
+            if (ret == -1) {
+                std::cerr << "调用编辑器失败" << std::endl;
+                unlink(tmpname);
+                return;
+            }
+            std::ifstream ifs(tmpname);
+            std::stringstream buffer;
+            buffer << ifs.rdbuf();
+            cmd = buffer.str();
+            unlink(tmpname);
+            if (cmd.empty()) {
+                std::cerr << "未输入任何内容" << std::endl;
+                return;
+            }
+        } else {
+            // 单行模式
+            cmd = ReadlineHelper::read_line(
+                Colors::CYAN +
+                QCoreApplication::translate("addRecord", "请输入单行命令:").toStdString() +
+                Colors::RESET);
         }
+    }
 
-        if (orig_idx != -1)
-        {
-            std::cout << QCoreApplication::translate("processIndexSelection",
-                                                     "配置完成")
-                             .toStdString()
-                      << std::endl;
+    if (cmd.empty() && cmds.empty()) {
+        cmd = "ls -l";
+        std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ").toStdString()
+                  << cmd << std::endl;
+    }
+    if (!cmd.empty())
+        cmds.append(cmd);
+
+    file.saveConfig(config);
+    std::cerr << Colors::GREEN
+              << QCoreApplication::translate("addRecord", "记录已保存!").toStdString()
+              << Colors::RESET << std::endl;
+}
+
+void PathKeeper::showRecord()
+{
+    Json::Value config = file.loadConfig();
+    Json::Value paths = config["path"];
+    if (paths.empty()) {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("showRecord", "没有记录!").toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
+
+    int i = 1;
+    std::vector<std::string> valid_dirs = file.get_valid_directories(paths);
+    for (const auto& dir : valid_dirs) {
+        std::cerr << Colors::BLUE << "[" << i << "]" << Colors::RESET
+                  << " " << Colors::GREEN << dir << Colors::RESET << std::endl;
+        Json::Value cmds = paths[dir]["cmds"];
+        displayCommands(cmds, i);
+        i++;
+    }
+    displayRecentMark(config, paths);
+}
+
+void PathKeeper::outputRecentCommand()
+{
+    Json::Value config = file.loadConfig();
+    if (config["recent"].isNull() || !config["recent"].isArray() || config["recent"].size() != 2) {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("runRecent", "没有最近记录!").toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
+
+    int orig_idx1 = config["recent"][0].asInt();
+    int idx2 = config["recent"][1].asInt();
+    Json::Value paths = config["path"];
+    if (orig_idx1 < 0 || orig_idx1 >= (int)file.path_keys_order.size()) {
+        std::cerr << "Recent invalid" << std::endl;
+        return;
+    }
+    std::string directory = file.path_keys_order[orig_idx1];
+    if (!paths.isMember(directory)) {
+        std::cerr << "Recent directory missing" << std::endl;
+        return;
+    }
+    Json::Value cmds = paths[directory]["cmds"];
+    if (idx2 < 0 || idx2 >= (int)cmds.size()) {
+        std::cerr << "Recent command invalid" << std::endl;
+        return;
+    }
+    std::string command = cmds[idx2].asString();
+    std::string final_cmd = CommandBuilder::build(directory, command, logger);
+    outputCommand(final_cmd);
+}
+
+void PathKeeper::setRecent()
+{
+    Json::Value config = file.loadConfig();
+    Json::Value paths = config["path"];
+    if (paths.empty()) {
+        std::cerr << "No records" << std::endl;
+        return;
+    }
+    // 显示记录并提示输入编号
+    showRecord();
+    std::string index_str = getInputIndex(
+        "", QCoreApplication::translate("setRecent", "请输入目标编号: ").toStdString());
+    if (index_str.empty()) return;
+    processIndexSelection(index_str, paths, config, false, true);
+}
+
+void PathKeeper::selectRun(const std::string& cmd_index, bool set_recent, bool show)
+{
+    Json::Value config = file.loadConfig();
+    if (show) showRecord();
+    Json::Value paths = config["path"];
+    if (paths.empty()) {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("selectRun", "没有记录!").toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
+    std::string index_str = getInputIndex(
+        cmd_index, QCoreApplication::translate("selectRun", "请输入要执行的编号: ").toStdString());
+    if (index_str.empty()) {
+        outputRecentCommand();
+        return;
+    }
+    processIndexSelection(index_str, paths, config, true, set_recent);
+}
+
+void PathKeeper::runPoint(const std::string& cmd_index)
+{
+    // 不设置 recent
+    selectRun(cmd_index, false, cmd_index.empty());
+}
+
+// 原有的 displayCommands / displayRecentMark 移植至此，输出到 stderr
+void PathKeeper::displayCommands(const Json::Value& commands, int parent_index)
+{
+    for (Json::ArrayIndex j = 0; j < commands.size(); j++) {
+        std::string cmd_str = commands[j].asString();
+        std::string display = cmd_str;
+        // 若含换行，显示首行 + [M]
+        if (cmd_str.find('\n') != std::string::npos)
+            display = cmd_str.substr(0, cmd_str.find('\n')) + " [M]";
+        if (parent_index > 0)
+            std::cerr << "    " << Colors::CYAN << "[" << parent_index << "."
+                      << (j + 1) << "]" << Colors::RESET << " " << display << std::endl;
+        else
+            std::cerr << "    " << Colors::CYAN << "[" << (j + 1) << "]"
+                      << Colors::RESET << " " << display << std::endl;
+    }
+}
+
+void PathKeeper::displayRecentMark(const Json::Value& config, const Json::Value& paths)
+{
+    if (!config["recent"].isNull() && config["recent"].isArray() && config["recent"].size() == 2) {
+        int orig_idx1 = config["recent"][0].asInt();
+        int idx2 = config["recent"][1].asInt();
+        int display_num = file.get_display_number_by_directory_index(orig_idx1, paths);
+        if (display_num != -1) {
+            std::string recent_dir = file.path_keys_order[orig_idx1];
+            Json::Value cmds = paths[recent_dir]["cmds"];
+            if (idx2 >= 0 && idx2 < (int)cmds.size())
+                std::cerr << Colors::YELLOW
+                          << QCoreApplication::translate("displayRecentMark", "最近执行").toStdString()
+                          << ": [" << display_num << "." << (idx2 + 1) << "] "
+                          << recent_dir << Colors::RESET << std::endl;
         }
     }
 }
