@@ -5,7 +5,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
+#include <fcntl.h>   // for open
+#include <unistd.h>  // for dup, dup2, close
 #include "colors.h"
 #include "json/value.h"
 #include "readline.h"
@@ -160,6 +161,9 @@ void PathKeeper::processIndexSelection(const std::string& index_str,
 
 // -------- 公有方法 ---------
 
+
+
+
 void PathKeeper::addRecord()
 {
     Json::Value config = file.loadConfig();
@@ -200,44 +204,89 @@ void PathKeeper::addRecord()
         Colors::RESET);
 
     if (cmd.empty()) {
-        // 多行编辑器模式
-        std::cerr << "按 'e' 打开编辑器，其他键输入单行: ";
-        std::string choice;
-        std::getline(std::cin, choice);
-        if (choice == "e") {
-            // 创建临时文件并打开编辑器
+        std::string choice = ReadlineHelper::read_line(
+            Colors::CYAN +
+            std::string("按 'e' 打开编辑器，其他键输入单行: ") +
+            Colors::RESET);
+        if (choice == "e" || choice == "E") {
+            // ---------- 编辑器模式 ----------
             char tmpname[] = "/tmp/pk_cmd_XXXXXX";
             int fd = mkstemp(tmpname);
             if (fd == -1) {
-                std::cerr << "无法创建临时文件" << std::endl;
+                std::cerr << Colors::RED << "无法创建临时文件" << Colors::RESET << std::endl;
                 return;
             }
             close(fd);
+
             Editor editor;
             std::string editor_cmd = editor.getEditor();
             if (editor_cmd.empty()) {
-                std::cerr << "未设置编辑器，请先执行 pk config -editor" << std::endl;
+                std::cerr << Colors::YELLOW << "未设置编辑器，请先执行 pk config -editor" << Colors::RESET << std::endl;
                 unlink(tmpname);
                 return;
             }
+
+            if (access(editor_cmd.c_str(), X_OK) != 0) {
+                std::cerr << Colors::RED << "编辑器 '" << editor_cmd << "' 不存在或无权执行！" << Colors::RESET << std::endl;
+                unlink(tmpname);
+                return;
+            }
+
+            // ★★★ 1. 强制恢复终端规范模式
+            rl_deprep_terminal();
+            ReadlineHelper::reset_terminal();
+
+            // ★★★ 2. 将 stdout 重定向到真实终端，解决 shell 管道捕获导致的“输出不是终端”问题
+            int stdout_backup = dup(STDOUT_FILENO);      // 备份原 stdout（管道）
+            int tty_fd = open("/dev/tty", O_WRONLY);
+            if (tty_fd != -1) {
+                dup2(tty_fd, STDOUT_FILENO);
+                close(tty_fd);
+            }
+
+            std::cerr << Colors::GREEN << "正在启动编辑器: " << editor_cmd << Colors::RESET << std::endl;
             std::string sys_cmd = editor_cmd + " " + tmpname;
             int ret = system(sys_cmd.c_str());
+
+            // ★★★ 3. 恢复原 stdout（管道），避免影响后续输出
+            if (stdout_backup != -1) {
+                dup2(stdout_backup, STDOUT_FILENO);
+                close(stdout_backup);
+            }
+
             if (ret == -1) {
-                std::cerr << "调用编辑器失败" << std::endl;
+                std::cerr << Colors::RED << "调用编辑器失败 (fork 失败)" << Colors::RESET << std::endl;
                 unlink(tmpname);
                 return;
             }
+            if (ret != 0) {
+                std::cerr << Colors::RED << "编辑器异常退出 (返回码: " << ret << ")" << Colors::RESET << std::endl;
+                unlink(tmpname);
+                return;
+            }
+
+            // 读取编辑器保存的命令
             std::ifstream ifs(tmpname);
             std::stringstream buffer;
             buffer << ifs.rdbuf();
             cmd = buffer.str();
             unlink(tmpname);
+
             if (cmd.empty()) {
-                std::cerr << "未输入任何内容" << std::endl;
+                std::cerr << Colors::YELLOW << "编辑器未保存任何内容，命令未添加。" << Colors::RESET << std::endl;
                 return;
             }
-        } else {
-            // 单行模式
+
+            // 编辑器模式直接保存为普通字符串（日志跟随全局设置）
+            cmds.append(cmd);
+            file.saveConfig(config);
+            std::cerr << Colors::GREEN
+                      << QCoreApplication::translate("addRecord", "记录已保存!").toStdString()
+                      << Colors::RESET << std::endl;
+            return;   // 直接返回，不进入后续的日志询问
+        }
+        else {
+            // 单行模式，仍然用 readline 获取命令
             cmd = ReadlineHelper::read_line(
                 Colors::CYAN +
                 QCoreApplication::translate("addRecord", "请输入单行命令:").toStdString() +
@@ -245,16 +294,17 @@ void PathKeeper::addRecord()
         }
     }
 
+    // 单行命令的默认值与日志询问（保持原有逻辑）
     if (cmd.empty() && cmds.empty()) {
         cmd = "ls -l";
         std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ").toStdString()
                   << cmd << std::endl;
     }
     if (!cmd.empty()) {
-        // 新增：询问是否启用单独日志（可选）
-        std::cerr << "为该命令单独设置日志记录? (y=强制记录 / n=强制不记录 / 回车=跟随全局): ";
-        std::string logChoice;
-        std::getline(std::cin, logChoice);
+        std::string logChoice = ReadlineHelper::read_line(
+            Colors::CYAN +
+            std::string("为该命令单独设置日志记录? (y=强制记录 / n=强制不记录 / 回车=跟随全局): ") +
+            Colors::RESET);
         if (logChoice == "y" || logChoice == "Y") {
             Json::Value obj;
             obj["cmd"] = cmd;
@@ -266,7 +316,6 @@ void PathKeeper::addRecord()
             obj["log"] = false;
             cmds.append(obj);
         } else {
-            // 默认行为：只保存字符串
             cmds.append(cmd);
         }
     }

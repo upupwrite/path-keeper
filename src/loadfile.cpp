@@ -333,7 +333,8 @@ int File::get_display_number_by_directory_index(int orig_index, const Json::Valu
 
 Editor::Editor()
     : COMMON_EDITORS({"vim", "nvim", "nano", "emacs", "micro", "helix", "code",
-                      "codium", "kate", "gedit", "mousepad", "ne", "jed", "joe"}) {}
+                      "codium", "kate", "gedit", "mousepad", "ne", "jed", "joe"}) {
+ config = file.loadConfig();}
 
 std::string Editor::findInPath(const std::string &prog)
 {
