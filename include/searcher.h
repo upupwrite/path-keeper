@@ -1,10 +1,13 @@
 #pragma once
-#include <string>
 #include <json/value.h>
+
+#include <string>
+
 #include "loadfile.h"
 #include "logger.h"
 
-class Searcher {
+class Searcher
+{
 public:
     static std::string interactiveSearch(const Json::Value& config, File& file);
 };

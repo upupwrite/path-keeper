@@ -1,8 +1,8 @@
 #pragma once
-#include <termios.h>
 #include <pwd.h>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -37,7 +37,10 @@ public:
     static std::string read_line(const std::string& prompt)
     {
         char* line = readline(prompt.c_str());
-        if (!line) { return ""; }
+        if (!line)
+        {
+            return "";
+        }
 
         std::string result(line);
         free(line);
@@ -49,36 +52,47 @@ public:
         std::vector<std::string> commands;
 
         static const char* common_commands[] = {
-            "ls", "cd", "pwd", "mkdir", "rm", "cp",
-            "mv", "cat", "less", "more", "grep", "find",
-            "head", "tail", "vim", "nano", "echo", "printf",
-            "chmod", "chown", "ps", "kill", "top", "htop",
-            "git", "docker", "ssh", "scp", "tar", "gzip",
-            "gunzip", "make", "cmake", "g++", "gcc", "python",
-            "python3", "node", "npm", "yarn", "java", "javac",
-            "systemctl", "journalctl", "apt", "yum", "dnf", "brew"
-        };
-        commands.insert(commands.end(), std::begin(common_commands), std::end(common_commands));
+            "ls",        "cd",         "pwd",   "mkdir", "rm",   "cp",
+            "mv",        "cat",        "less",  "more",  "grep", "find",
+            "head",      "tail",       "vim",   "nano",  "echo", "printf",
+            "chmod",     "chown",      "ps",    "kill",  "top",  "htop",
+            "git",       "docker",     "ssh",   "scp",   "tar",  "gzip",
+            "gunzip",    "make",       "cmake", "g++",   "gcc",  "python",
+            "python3",   "node",       "npm",   "yarn",  "java", "javac",
+            "systemctl", "journalctl", "apt",   "yum",   "dnf",  "brew"};
+        commands.insert(commands.end(), std::begin(common_commands),
+                        std::end(common_commands));
 
         char* path_env = getenv("PATH");
-        if (path_env) {
+        if (path_env)
+        {
             std::string path_str(path_env);
             std::stringstream ss(path_str);
             std::string dir;
-            while (std::getline(ss, dir, ':')) {
-                try {
-                    if (fs::exists(dir) && fs::is_directory(dir)) {
-                        for (const auto& entry : fs::directory_iterator(dir)) {
-                            if (entry.is_regular_file() && access(entry.path().c_str(), X_OK) == 0)
-                                commands.push_back(entry.path().filename().string());
+            while (std::getline(ss, dir, ':'))
+            {
+                try
+                {
+                    if (fs::exists(dir) && fs::is_directory(dir))
+                    {
+                        for (const auto& entry : fs::directory_iterator(dir))
+                        {
+                            if (entry.is_regular_file() &&
+                                access(entry.path().c_str(), X_OK) == 0)
+                                commands.push_back(
+                                    entry.path().filename().string());
                         }
                     }
-                } catch (...) {}
+                }
+                catch (...)
+                {
+                }
             }
         }
 
         std::sort(commands.begin(), commands.end());
-        commands.erase(std::unique(commands.begin(), commands.end()), commands.end());
+        commands.erase(std::unique(commands.begin(), commands.end()),
+                       commands.end());
         return commands;
     }
 
@@ -89,13 +103,15 @@ private:
         static size_t list_index = 0;
         static size_t text_len = 0;
 
-        if (state == 0) {
+        if (state == 0)
+        {
             commands = get_system_commands();
             list_index = 0;
             text_len = strlen(text);
         }
 
-        while (list_index < commands.size()) {
+        while (list_index < commands.size())
+        {
             const std::string& cmd = commands[list_index++];
             if (strncmp(cmd.c_str(), text, text_len) == 0)
                 return strdup(cmd.c_str());
@@ -108,12 +124,15 @@ private:
         static char** matches = nullptr;
         static int match_index = 0;
 
-        if (state == 0) {
-            if (matches) {
+        if (state == 0)
+        {
+            if (matches)
+            {
                 for (char** p = matches; *p; p++) free(*p);
                 free(matches);
             }
-            matches = rl_completion_matches(text, rl_filename_completion_function);
+            matches =
+                rl_completion_matches(text, rl_filename_completion_function);
             match_index = 0;
         }
 
@@ -127,20 +146,20 @@ private:
         (void)end;
         rl_attempted_completion_over = 1;
 
-        if (start == 0) {
+        if (start == 0)
+        {
             if (strchr(text, '/') != nullptr)
                 return rl_completion_matches(text, filename_generator);
             else
                 return rl_completion_matches(text, command_generator);
-        } else {
+        }
+        else
+        {
             return rl_completion_matches(text, filename_generator);
         }
     }
 
-
-
-
-public :
+public:
     // 强制恢复终端为规范模式，用于启动外部全屏程序前
     static void reset_terminal()
     {
@@ -154,6 +173,3 @@ public :
         system("stty sane");
     }
 };
-
-
-

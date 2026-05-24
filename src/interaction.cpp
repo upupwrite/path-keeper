@@ -1,4 +1,5 @@
 #include "interaction.h"
+
 #include <QCoreApplication>
 #include <iostream>
 #include <string>
@@ -8,21 +9,28 @@
 
 Interaction::Interaction() {}
 
-void Interaction::dir() {
-    std::cerr << QCoreApplication::translate("Interaction", "当前所在的目录:").toStdString()
+void Interaction::dir()
+{
+    std::cerr << QCoreApplication::translate("Interaction", "当前所在的目录:")
+                     .toStdString()
               << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
 }
 
-void Interaction::handleConfig(int argc, char **argv) {
+void Interaction::handleConfig(int argc, char **argv)
+{
     Editor editor;
-    if (argc > 2) {
-        if (std::strcmp(argv[2], "-editor") == 0) {
-            if (argv[3] == nullptr || argv[3][0] == '\0') {
+    if (argc > 2)
+    {
+        if (std::strcmp(argv[2], "-editor") == 0)
+        {
+            if (argv[3] == nullptr || argv[3][0] == '\0')
+            {
                 std::string current = editor.getEditor();
                 if (!current.empty())
                     std::cerr << "Current editor: " << current << "\n";
                 auto editors = editor.getAvailableEditors();
-                if (editors.empty()) {
+                if (editors.empty())
+                {
                     std::cerr << "No editors found.\n";
                     return;
                 }
@@ -30,7 +38,9 @@ void Interaction::handleConfig(int argc, char **argv) {
                 std::string chosen = editor.getUserChoice(editors);
                 editor.setEditor(chosen);
                 std::cerr << "Editor set to: " << chosen << std::endl;
-            } else {
+            }
+            else
+            {
                 editor.setEditor(argv[3]);
                 std::cerr << "Editor set to: " << argv[3] << std::endl;
             }
@@ -39,48 +49,66 @@ void Interaction::handleConfig(int argc, char **argv) {
     }
     // 无参数或无法识别：输出打开配置文件的命令
     std::string editor_cmd = editor.getEditor();
-    if (editor_cmd.empty()) {
-        std::cerr << "No editor configured. Use pk config -editor to set one.\n";
+    if (editor_cmd.empty())
+    {
+        std::cerr
+            << "No editor configured. Use pk config -editor to set one.\n";
         return;
     }
     std::string config_file = Achieve::CONFIG_FILE;
     std::cout << editor_cmd << " " << config_file << std::endl;
 }
 
-void Interaction::handleAlias(int argc, char **argv) {
+void Interaction::handleAlias(int argc, char **argv)
+{
     AliasManager am(pk.file);
-    if (argc < 3) {
+    if (argc < 3)
+    {
         std::cerr << "Usage: pk alias <add|remove|list|install>\n";
         return;
     }
     std::string action = argv[2];
-    if (action == "add") {
-        if (argc < 5) {
+    if (action == "add")
+    {
+        if (argc < 5)
+        {
             std::cerr << "Usage: pk alias add <name> <index>\n";
             return;
         }
         am.addAlias(argv[3], argv[4]);
         std::cerr << "Alias added.\n";
-    } else if (action == "remove") {
-        if (argc < 4) {
+    }
+    else if (action == "remove")
+    {
+        if (argc < 4)
+        {
             std::cerr << "Usage: pk alias remove <name>\n";
             return;
         }
         am.removeAlias(argv[3]);
         std::cerr << "Alias removed.\n";
-    } else if (action == "list") {
+    }
+    else if (action == "list")
+    {
         am.listAliases();
-    } else if (action == "install") {
+    }
+    else if (action == "install")
+    {
         am.generateShellFile();
         std::cerr << "Alias shell file generated at ~/.pk_aliases.sh\n";
-    } else {
+    }
+    else
+    {
         std::cerr << "Unknown alias action.\n";
     }
 }
 
-void Interaction::main(int argc, char **argv) {
-    try {
-        if (argc == 1) {
+void Interaction::main(int argc, char **argv)
+{
+    try
+    {
+        if (argc == 1)
+        {
             dir();
             pk.outputRecentCommand();
             return;
@@ -88,56 +116,92 @@ void Interaction::main(int argc, char **argv) {
 
         std::string option = argv[1];
 
-        if (option == "-a" || option == "--add") {
+        if (option == "-a" || option == "--add")
+        {
             dir();
             pk.addRecord();
-        } else if (option == "-s" || option == "--show") {
+        }
+        else if (option == "-s" || option == "--show")
+        {
             dir();
             pk.showRecord();
-        } else if (option == "-p" || option == "--point") {
+        }
+        else if (option == "-p" || option == "--point")
+        {
             dir();
             pk.runPoint(argc > 2 ? argv[2] : "");
-        } else if (option == "-c" || option == "--configure") {
+        }
+        else if (option == "-c" || option == "--configure")
+        {
             dir();
             pk.setRecent();
-        } else if (option == "-e" || option == "--execute") {
+        }
+        else if (option == "-e" || option == "--execute")
+        {
             dir();
             pk.selectRun(argc > 2 ? argv[2] : "", true, false);
-        } else if (option == "-v" || option == "--version") {
+        }
+        else if (option == "-v" || option == "--version")
+        {
             showVersion();
-        } else if (option == "--version-verbose" || option == "-V") {
+        }
+        else if (option == "--version-verbose" || option == "-V")
+        {
             showVersion(true);
-        } else if (option == "-h" || option == "--help") {
+        }
+        else if (option == "-h" || option == "--help")
+        {
             showHelp();
-        } else if (option == "config") {
+        }
+        else if (option == "config")
+        {
             handleConfig(argc, argv);
-        } else if (option == "alias") {
+        }
+        else if (option == "alias")
+        {
             handleAlias(argc, argv);
-        } else if (option == "search") {
+        }
+        else if (option == "search")
+        {
             Json::Value config = pk.file.loadConfig();
             std::string cmd = Searcher::interactiveSearch(config, pk.file);
             if (!cmd.empty())
                 std::cout << cmd << std::endl;
-         } else if (option == "verify") {
+        }
+        else if (option == "verify")
+        {
             Json::Value config = pk.file.loadConfig();
-            HashVerifier::verifyConfig(config);   // 匹配非 const 引用
-        } else if (option == "rehash") {
+            HashVerifier::verifyConfig(config);  // 匹配非 const 引用
+        }
+        else if (option == "rehash")
+        {
             Json::Value config = pk.file.loadConfig();
             HashVerifier::verifyConfig(config, true);
             pk.file.saveConfig(config);
             std::cerr << "Hashes updated.\n";
-        } else if (option == "log") {
+        }
+        else if (option == "log")
+        {
             Logger logger(pk.file.loadConfig());
             logger.listLogs();
-        } else {
-            std::cerr << Colors::RED
-                      << QCoreApplication::translate("Interaction", "未知选项: ").toStdString()
-                      << option << Colors::RESET << std::endl;
-            std::cerr << "用法: pk [-a | -s | -p | -c | -e [index] | config | alias | search | verify | rehash | log]" << std::endl;
         }
-    } catch (const std::exception& e) {
+        else
+        {
+            std::cerr << Colors::RED
+                      << QCoreApplication::translate("Interaction",
+                                                     "未知选项: ")
+                             .toStdString()
+                      << option << Colors::RESET << std::endl;
+            std::cerr << "用法: pk [-a | -s | -p | -c | -e [index] | config | "
+                         "alias | search | verify | rehash | log]"
+                      << std::endl;
+        }
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("Interaction", "错误: ").toStdString()
+                  << QCoreApplication::translate("Interaction", "错误: ")
+                         .toStdString()
                   << e.what() << Colors::RESET << std::endl;
     }
 }

@@ -1,14 +1,16 @@
 #pragma once
-#include "pk.h"
-#include "loadfile.h"
 #include "aliasmanager.h"
 #include "hashverifier.h"
+#include "loadfile.h"
+#include "pk.h"
 #include "searcher.h"
 
-class Interaction {
+class Interaction
+{
 public:
     Interaction();
     void main(int argc, char *argv[]);
+
 private:
     PathKeeper pk;
     void dir();
