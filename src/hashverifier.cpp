@@ -1,4 +1,5 @@
 #include "hashverifier.h"
+#include "loadfile.h"
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -147,7 +148,7 @@ std::string HashVerifier::sha256(const std::string& data) {
 }
 
 
-bool HashVerifier::verifyConfig(const Json::Value& config, bool fix) {
+bool HashVerifier::verifyConfig(Json::Value& config, bool fix) {
     bool allOk = true;
     Json::Value paths = config["path"];
     for (const auto& dir : paths.getMemberNames()) {
@@ -156,7 +157,7 @@ bool HashVerifier::verifyConfig(const Json::Value& config, bool fix) {
         Json::Value cmds = entry["cmds"];
         Json::Value hashes = entry["hashes"];
         for (Json::ArrayIndex i = 0; i < cmds.size(); ++i) {
-            std::string cmd = cmds[i].asString();
+            std::string cmd = File::getCommandString(cmds[i]); // 使用辅助函数提取命令文本
             std::string expected = sha256(cmd);
             std::string current = (i < hashes.size()) ? hashes[i].asString() : "";
             if (current != expected) {

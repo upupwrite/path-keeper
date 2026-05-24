@@ -22,7 +22,6 @@ namespace Achieve {
     }();
 }
 
-// 前向声明
 class PathKeeper;
 
 class JsonFormatter {
@@ -50,6 +49,10 @@ public:
     std::vector<std::string> get_valid_directories(const Json::Value& paths);
     int get_directory_index_by_display_number(int display_num, const Json::Value& paths);
     int get_display_number_by_directory_index(int orig_index, const Json::Value& paths);
+
+    // 新增辅助函数：从命令条目（可能是字符串或对象）中提取命令文本和日志标志
+    static std::string getCommandString(const Json::Value& cmdEntry);
+    static void getCommandLogFlag(const Json::Value& cmdEntry, bool& log_set, bool& log_value);
 };
 
 class Editor {

@@ -118,9 +118,9 @@ void Interaction::main(int argc, char **argv) {
             std::string cmd = Searcher::interactiveSearch(config, pk.file);
             if (!cmd.empty())
                 std::cout << cmd << std::endl;
-        } else if (option == "verify") {
+         } else if (option == "verify") {
             Json::Value config = pk.file.loadConfig();
-            HashVerifier::verifyConfig(config);
+            HashVerifier::verifyConfig(config);   // 匹配非 const 引用
         } else if (option == "rehash") {
             Json::Value config = pk.file.loadConfig();
             HashVerifier::verifyConfig(config, true);

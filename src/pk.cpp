@@ -19,7 +19,7 @@ PathKeeper::PathKeeper()
         cwd = ".";
 
     file.load_key_order();
-    logger = Logger(file.loadConfig()); // 日志配置从 config 中读取
+    logger = Logger(file.loadConfig());
 }
 
 void PathKeeper::outputCommand(const std::string& cmd)
@@ -46,7 +46,6 @@ std::string PathKeeper::getInputIndex(const std::string& provided_index,
     return index_str;
 }
 
-// 沿用原有解析逻辑，但适配新结构
 bool PathKeeper::parseIndex(const std::string& index_str,
                             std::vector<std::string>& valid_dirs,
                             Json::Value& paths,
@@ -141,16 +140,19 @@ void PathKeeper::processIndexSelection(const std::string& index_str,
     }
 
     Json::Value cmds = paths[directory]["cmds"];
-    std::string command = cmds[cmd_idx].asString();
+    Json::Value cmdEntry = cmds[cmd_idx];
+    std::string command = File::getCommandString(cmdEntry);
+    bool log_set = false, log_value = false;
+    File::getCommandLogFlag(cmdEntry, log_set, log_value);
 
     if (set_recent)
         saveRecentRecord(config, directory, cmd_idx);
 
     if (output_command) {
-        std::string final_cmd = CommandBuilder::build(directory, command, logger);
+        std::string final_cmd = CommandBuilder::build(directory, command, logger,
+                                                      log_set, log_value);
         outputCommand(final_cmd);
     } else {
-        // 仅设置 recent 的情况，显示确认信息
         std::cerr << QCoreApplication::translate("processIndexSelection", "配置完成").toStdString()
                   << std::endl;
     }
@@ -248,8 +250,26 @@ void PathKeeper::addRecord()
         std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ").toStdString()
                   << cmd << std::endl;
     }
-    if (!cmd.empty())
-        cmds.append(cmd);
+    if (!cmd.empty()) {
+        // 新增：询问是否启用单独日志（可选）
+        std::cerr << "为该命令单独设置日志记录? (y=强制记录 / n=强制不记录 / 回车=跟随全局): ";
+        std::string logChoice;
+        std::getline(std::cin, logChoice);
+        if (logChoice == "y" || logChoice == "Y") {
+            Json::Value obj;
+            obj["cmd"] = cmd;
+            obj["log"] = true;
+            cmds.append(obj);
+        } else if (logChoice == "n" || logChoice == "N") {
+            Json::Value obj;
+            obj["cmd"] = cmd;
+            obj["log"] = false;
+            cmds.append(obj);
+        } else {
+            // 默认行为：只保存字符串
+            cmds.append(cmd);
+        }
+    }
 
     file.saveConfig(config);
     std::cerr << Colors::GREEN
@@ -307,8 +327,12 @@ void PathKeeper::outputRecentCommand()
         std::cerr << "Recent command invalid" << std::endl;
         return;
     }
-    std::string command = cmds[idx2].asString();
-    std::string final_cmd = CommandBuilder::build(directory, command, logger);
+    Json::Value cmdEntry = cmds[idx2];
+    std::string command = File::getCommandString(cmdEntry);
+    bool log_set = false, log_value = false;
+    File::getCommandLogFlag(cmdEntry, log_set, log_value);
+    std::string final_cmd = CommandBuilder::build(directory, command, logger,
+                                                  log_set, log_value);
     outputCommand(final_cmd);
 }
 
@@ -320,7 +344,6 @@ void PathKeeper::setRecent()
         std::cerr << "No records" << std::endl;
         return;
     }
-    // 显示记录并提示输入编号
     showRecord();
     std::string index_str = getInputIndex(
         "", QCoreApplication::translate("setRecent", "请输入目标编号: ").toStdString());
@@ -350,17 +373,14 @@ void PathKeeper::selectRun(const std::string& cmd_index, bool set_recent, bool s
 
 void PathKeeper::runPoint(const std::string& cmd_index)
 {
-    // 不设置 recent
     selectRun(cmd_index, false, cmd_index.empty());
 }
 
-// 原有的 displayCommands / displayRecentMark 移植至此，输出到 stderr
 void PathKeeper::displayCommands(const Json::Value& commands, int parent_index)
 {
     for (Json::ArrayIndex j = 0; j < commands.size(); j++) {
-        std::string cmd_str = commands[j].asString();
+        std::string cmd_str = File::getCommandString(commands[j]);
         std::string display = cmd_str;
-        // 若含换行，显示首行 + [M]
         if (cmd_str.find('\n') != std::string::npos)
             display = cmd_str.substr(0, cmd_str.find('\n')) + " [M]";
         if (parent_index > 0)

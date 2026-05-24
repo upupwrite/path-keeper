@@ -434,3 +434,23 @@ void Editor::setEditor(const std::string &newEditor)
     config["editor"] = newEditor;
     file.saveConfig(config);
 }
+
+
+// ========== 新增静态辅助函数 ==========
+std::string File::getCommandString(const Json::Value& cmdEntry) {
+    if (cmdEntry.isString()) {
+        return cmdEntry.asString();
+    } else if (cmdEntry.isObject() && cmdEntry.isMember("cmd")) {
+        return cmdEntry["cmd"].asString();
+    }
+    return "";
+}
+
+void File::getCommandLogFlag(const Json::Value& cmdEntry, bool& log_set, bool& log_value) {
+    log_set = false;
+    log_value = false;
+    if (cmdEntry.isObject() && cmdEntry.isMember("log")) {
+        log_set = true;
+        log_value = cmdEntry["log"].asBool();
+    }
+}
