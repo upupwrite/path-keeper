@@ -6,101 +6,15 @@
 
 #include "colors.h"
 #include "info.h"
+#include "loadfile.h"
 
 Interaction::Interaction() {}
 
 void Interaction::dir()
 {
-    std::cerr << QCoreApplication::translate("Interaction", "当前所在的目录:")
+    std::cout << QCoreApplication::translate("Interaction", "当前所在的目录:")
                      .toStdString()
               << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
-}
-
-void Interaction::handleConfig(int argc, char **argv)
-{
-    Editor editor;
-    if (argc > 2)
-    {
-        if (std::strcmp(argv[2], "-editor") == 0)
-        {
-            if (argv[3] == nullptr || argv[3][0] == '\0')
-            {
-                std::string current = editor.getEditor();
-                if (!current.empty())
-                    std::cerr << "Current editor: " << current << "\n";
-                auto editors = editor.getAvailableEditors();
-                if (editors.empty())
-                {
-                    std::cerr << "No editors found.\n";
-                    return;
-                }
-                editor.printMenu(editors);
-                std::string chosen = editor.getUserChoice(editors);
-                editor.setEditor(chosen);
-                std::cerr << "Editor set to: " << chosen << std::endl;
-            }
-            else
-            {
-                editor.setEditor(argv[3]);
-                std::cerr << "Editor set to: " << argv[3] << std::endl;
-            }
-            return;
-        }
-    }
-    // 无参数或无法识别：输出打开配置文件的命令
-    std::string editor_cmd = editor.getEditor();
-    if (editor_cmd.empty())
-    {
-        std::cerr
-            << "No editor configured. Use pk config -editor to set one.\n";
-        return;
-    }
-    std::string config_file = Achieve::CONFIG_FILE;
-    std::cout << editor_cmd << " " << config_file << std::endl;
-}
-
-void Interaction::handleAlias(int argc, char **argv)
-{
-    AliasManager am(pk.file);
-    if (argc < 3)
-    {
-        std::cerr << "Usage: pk alias <add|remove|list|install>\n";
-        return;
-    }
-    std::string action = argv[2];
-    if (action == "add")
-    {
-        if (argc < 5)
-        {
-            std::cerr << "Usage: pk alias add <name> <index>\n";
-            return;
-        }
-        am.addAlias(argv[3], argv[4]);
-        std::cerr << "Alias added.\n";
-    }
-    else if (action == "remove")
-    {
-        if (argc < 4)
-        {
-            std::cerr << "Usage: pk alias remove <name>\n";
-            return;
-        }
-        am.removeAlias(argv[3]);
-        std::cerr << "Alias removed.\n";
-    }
-    else if (action == "list")
-    {
-        am.listAliases();
-    }
-    else if (action == "install")
-    {
-        am.generateShellFile();
-        std::cerr << "Alias shell file generated at ~/.pk_aliases.sh\n";
-    }
-    else
-    {
-        std::cerr << "Unknown alias action.\n";
-    }
 }
 
 void Interaction::main(int argc, char **argv)
@@ -110,7 +24,7 @@ void Interaction::main(int argc, char **argv)
         if (argc == 1)
         {
             dir();
-            pk.outputRecentCommand();
+            pk.runRecent();
             return;
         }
 
@@ -129,7 +43,14 @@ void Interaction::main(int argc, char **argv)
         else if (option == "-p" || option == "--point")
         {
             dir();
-            pk.runPoint(argc > 2 ? argv[2] : "");
+            if (argc > 2)
+            {
+                pk.runPoint(argv[2]);
+            }
+            else
+            {
+                pk.runPoint();
+            }
         }
         else if (option == "-c" || option == "--configure")
         {
@@ -139,61 +60,102 @@ void Interaction::main(int argc, char **argv)
         else if (option == "-e" || option == "--execute")
         {
             dir();
-            pk.selectRun(argc > 2 ? argv[2] : "", true, false);
+            if (argc > 2)
+            {
+                pk.selectRun(argv[2], true, false);
+            }
+            else
+            {
+                pk.selectRun();
+            }
         }
         else if (option == "-v" || option == "--version")
         {
             showVersion();
+            return;
         }
         else if (option == "--version-verbose" || option == "-V")
         {
             showVersion(true);
+            return;
         }
         else if (option == "-h" || option == "--help")
         {
             showHelp();
+            return;
         }
         else if (option == "config")
         {
-            handleConfig(argc, argv);
-        }
-        else if (option == "alias")
-        {
-            handleAlias(argc, argv);
-        }
-        else if (option == "search")
-        {
-            Json::Value config = pk.file.loadConfig();
-            std::string cmd = Searcher::interactiveSearch(config, pk.file);
-            if (!cmd.empty())
-                std::cout << cmd << std::endl;
-        }
-        else if (option == "verify")
-        {
-            Json::Value config = pk.file.loadConfig();
-            HashVerifier::verifyConfig(config);  // 匹配非 const 引用
-        }
-        else if (option == "rehash")
-        {
-            Json::Value config = pk.file.loadConfig();
-            HashVerifier::verifyConfig(config, true);
-            pk.file.saveConfig(config);
-            std::cerr << "Hashes updated.\n";
-        }
-        else if (option == "log")
-        {
-            Logger logger(pk.file.loadConfig());
-            logger.listLogs();
+            Editor editor;
+            if (argc > 2)
+            {
+                if (std::strcmp(argv[2], "-editor") == 0)
+                {
+                    if (argv[3] == nullptr || argv[3][0] == '\0')
+                    {
+                    SETEDITOR:
+                        std::string currentEditor = editor.getEditor();
+                        if (!currentEditor.empty())
+                        {
+                            std::cout
+                                << "Current editor setting: " << currentEditor
+                                << "\n";
+                        }
+                        auto editors = editor.getAvailableEditors();
+
+                        if (editors.empty())
+                        {
+                            std::cout
+                                << "No common editors found on your system.\n";
+                            std::cout << "Please install one (e.g., vim, nano) "
+                                         "and rerun this script.\n";
+                            return;
+                        }
+
+                        editor.printMenu(editors);
+                        std::string selectedEditor =
+                            editor.getUserChoice(editors);
+
+                        std::cout << "\nSelected editor: " << selectedEditor
+                                  << "\n";
+                        editor.setEditor(selectedEditor);
+                    }
+                    else
+                    {
+                        std::string selectedEditor = argv[3];
+                        std::cout << "Selected editor: " << selectedEditor
+                                  << "\n";
+                        editor.setEditor(selectedEditor);
+                    }
+                }
+            }
+            else
+            {
+                if (!editor.getEditor().empty())
+                {
+                    std::string configCommand =
+                        editor.getEditor() + " " + Achieve::CONFIG_FILE;
+                    pk.shellCommand(configCommand, "~");
+                }
+                else
+                {
+                    std::cout << "No current editor setting" << std::endl;
+                    goto SETEDITOR;
+                }
+            }
         }
         else
         {
-            std::cerr << Colors::RED
+            std::cout << Colors::RED
                       << QCoreApplication::translate("Interaction",
                                                      "未知选项: ")
                              .toStdString()
                       << option << Colors::RESET << std::endl;
-            std::cerr << "用法: pk [-a | -s | -p | -c | -e [index] | config | "
-                         "alias | search | verify | rehash | log]"
+            std::cout << QCoreApplication::translate("Interaction", "用法")
+                             .toStdString()
+                      << ": pk [-a | -s | -p "
+                         "| -c | -e "
+                         "[index]]"
                       << std::endl;
         }
     }
