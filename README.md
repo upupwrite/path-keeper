@@ -2,11 +2,9 @@
 
 ## Project Overview  
 
-> [!Warning]
-> I'm trying to add more features, but there are too many errors to fix. This could damage your previous configuration file!  
-
 > [!TIP]
 >This branch would need extra packages(like Qt) to complete internationalization.  
+>If you do not want to build with Qt indeed, you can switch to main branch.  
 
 PathKeeper is a command-line tool designed for: 
 

@@ -12,7 +12,7 @@ Interaction::Interaction() {}
 
 void Interaction::dir()
 {
-    std::cout << QCoreApplication::translate("Interaction", "当前所在的目录:")
+    std::cerr << QCoreApplication::translate("Interaction", "当前所在的目录:")
                      .toStdString()
               << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
 }
@@ -97,7 +97,7 @@ void Interaction::main(int argc, char **argv)
                         std::string currentEditor = editor.getEditor();
                         if (!currentEditor.empty())
                         {
-                            std::cout
+                            std::cerr
                                 << "Current editor setting: " << currentEditor
                                 << "\n";
                         }
@@ -105,9 +105,9 @@ void Interaction::main(int argc, char **argv)
 
                         if (editors.empty())
                         {
-                            std::cout
+                            std::cerr
                                 << "No common editors found on your system.\n";
-                            std::cout << "Please install one (e.g., vim, nano) "
+                            std::cerr << "Please install one (e.g., vim, nano) "
                                          "and rerun this script.\n";
                             return;
                         }
@@ -116,14 +116,14 @@ void Interaction::main(int argc, char **argv)
                         std::string selectedEditor =
                             editor.getUserChoice(editors);
 
-                        std::cout << "\nSelected editor: " << selectedEditor
+                        std::cerr << "\nSelected editor: " << selectedEditor
                                   << "\n";
                         editor.setEditor(selectedEditor);
                     }
                     else
                     {
                         std::string selectedEditor = argv[3];
-                        std::cout << "Selected editor: " << selectedEditor
+                        std::cerr << "Selected editor: " << selectedEditor
                                   << "\n";
                         editor.setEditor(selectedEditor);
                     }
@@ -139,19 +139,19 @@ void Interaction::main(int argc, char **argv)
                 }
                 else
                 {
-                    std::cout << "No current editor setting" << std::endl;
+                    std::cerr << "No current editor setting" << std::endl;
                     goto SETEDITOR;
                 }
             }
         }
         else
         {
-            std::cout << Colors::RED
+            std::cerr << Colors::RED
                       << QCoreApplication::translate("Interaction",
                                                      "未知选项: ")
                              .toStdString()
                       << option << Colors::RESET << std::endl;
-            std::cout << QCoreApplication::translate("Interaction", "用法")
+            std::cerr << QCoreApplication::translate("Interaction", "用法")
                              .toStdString()
                       << ": pk [-a | -s | -p "
                          "| -c | -e "

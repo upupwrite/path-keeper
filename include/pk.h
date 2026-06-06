@@ -1,6 +1,11 @@
 #pragma once
+#include <fcntl.h>
 #include <jsoncpp/json/json.h>
-#include <sys/stat.h>
+#include <pty.h>
+#include <sys/ioctl.h>
+#include <sys/select.h>
+#include <sys/wait.h>
+#include <termios.h>
 #include <unistd.h>
 
 #include <algorithm>
@@ -17,45 +22,42 @@
 #include <thread>
 #include <vector>
 
-#include "commandbuilder.h"
 #include "loadfile.h"
-#include "logger.h"
-
 class PathKeeper
 {
-public:
-    PathKeeper();
-
-    void addRecord();            // 添加记录
-    void showRecord();           // 显示记录（stderr）
-    void setRecent();            // 设置最近记录（不输出命令）
-    void outputRecentCommand();  // 输出 recent 命令到 stdout
-    void selectRun(const std::string& cmd_index = "", bool set_recent = true,
-                   bool show = true);  // 输出命令并可选更新 recent
-    void runPoint(
-        const std::string& cmd_index = "");  // 输出命令，不更新 recent
-
-    std::string cwd;
+private:
+    std::atomic<bool> stop_output_thread{false};
     File file;
 
-private:
-    Logger logger;
+    void displayCommands(const Json::Value &commands, int parent_index = 0);
 
-    std::string getInputIndex(const std::string& provided_index,
-                              const std::string& prompt);
-    bool parseIndex(const std::string& index_str,
-                    std::vector<std::string>& valid_dirs, Json::Value& paths,
-                    std::string& directory, int& cmd_idx);
+    void displayRecentMark(const Json::Value &config, const Json::Value &paths);
 
-    void saveRecentRecord(Json::Value& config, const std::string& directory,
+    std::string getInputIndex(const std::string &provided_index,
+                              const std::string &prompt);
+    bool parseIndex(const std::string &index_str,
+                    std::vector<std::string> &valid_dirs, Json::Value &paths,
+                    std::string &directory, int &cmd_idx);
+
+    void saveRecentRecord(Json::Value &config, const std::string &directory,
                           int cmd_idx);
 
-    void processIndexSelection(const std::string& index_str, Json::Value& paths,
-                               Json::Value& config, bool output_command,
-                               bool set_recent);
+    void processIndexSelection(const std::string &index_str, Json::Value &paths,
+                               Json::Value &config, bool execute_command,
+                               bool set_recent = true);
 
-    void outputCommand(const std::string& cmd);
+public:
+    PathKeeper();
+    void addRecord();
+    void runCommand(const std::string &directory, const std::string &command);
+    void setRecent(const std::string &cmd_index = "");
+    void runRecent();
+    void setCommand();
+    Json::Value showRecord(const bool show = true);
+    void runPoint(const std::string &cmd_index = "");
+    void selectRun(const std::string &cmd_index = "",
+                   const bool set_recent = true, const bool show = true);
+    void shellCommand(const std::string &command, const std::string &cwd);
 
-    void displayCommands(const Json::Value& commands, int parent_index = 0);
-    void displayRecentMark(const Json::Value& config, const Json::Value& paths);
+    std::string cwd;
 };

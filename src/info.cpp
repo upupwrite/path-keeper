@@ -1,10 +1,11 @@
 #include "info.h"
 
 #include <iostream>
+#include <iterator>
 
 #include "colors.h"
 
-const std::string VERSION = "2.5.8";
+const std::string VERSION = "2.4.5";
 
 void showVersion(bool verbose)
 {
@@ -35,36 +36,36 @@ void showVersion(bool verbose)
 
 void showHelp()
 {
-    std::cerr << "path-keeper Help\n"
-              << "Usage: pk <option|subcommand> [args]\n\n"
-              << "Main options:\n"
-              << "  -a, --add           "
-                 "添加命令记录（支持多行：按回车后选择编辑器模式）\n"
-              << "  -e, --execute [idx] 执行命令（可选直接指定编号，如 2.1）\n"
-              << "  -p, --point [idx]   执行命令但不更新 recent 记录\n"
-              << "  -s, --show          显示所有记录\n"
-              << "  -c, --configure     设置 recent 记录\n"
-              << "  -v, --version       显示版本信息\n"
-              << "  -V, --version-verbose 显示详细版本与构建信息\n"
-              << "  -h, --help          显示此帮助\n\n"
-              << "Subcommands:\n"
-              << "  config              打开编辑器设置\n"
-              << "  config -editor [cmd] 设置默认编辑器（无参数时交互选择）\n"
-              << "  alias add <name> <index>  添加别名\n"
-              << "  alias remove <name>       删除别名\n"
-              << "  alias list                列出所有别名\n"
-              << "  alias install             生成 shell 别名文件 "
-                 "(~/.pk_aliases.sh)\n"
-              << "  search              使用 fzf 交互式搜索并执行命令\n"
-              << "  verify              校验命令哈希值\n"
-              << "  rehash              重新生成并保存哈希值\n"
-              << "  log                 列出日志文件\n\n"
-              << "Log control per command:\n"
-              << "  "
-                 "添加命令时可选择单独日志记录（y=强制记录/n=强制不记录/"
-                 "回车=跟随全局）\n"
-              << "  也可在配置文件中将命令改为 {\"cmd\":\"...\", "
-                 "\"log\":true/false}\n"
-              << "Global log settings are in ~/.pk.json under \"log\" key.\n"
-              << std::endl;
+    std::cerr << "path-keeper Help" << std::endl;
+    std::cerr << "Options:\n";
+
+    std::cerr << Colors::BOLD << "  " << "--add" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Add a command" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--execute" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Execute a command" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--point" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Execute a command without record into recent" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--configure" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Configure recent command" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--version" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Check version" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--version-verbose" << Colors::RESET
+              << ":\n"
+              << "    " << "  ";
+    std::cerr << "Check version verbose" << std::endl;
+
+    std::cerr << Colors::BOLD << "  " << "--help" << Colors::RESET << ":\n"
+              << "    " << "  ";
+    std::cerr << "Get this help" << std::endl;
+
 }
