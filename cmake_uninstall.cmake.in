@@ -1,3 +1,6 @@
+# Uninstall script for path-keeper
+# This script removes all files installed by the project
+
 if(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
     message(FATAL_ERROR "Cannot find install manifest: @CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
 endif()
@@ -5,21 +8,94 @@ endif()
 file(READ "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt" files)
 string(REGEX REPLACE "[\r\n]" ";" files "${files}")
 
+# Count of files to be uninstalled
+list(LENGTH files file_count)
+message(STATUS "Found ${file_count} files to uninstall")
+
+set(failed_count 0)
+set(success_count 0)
+set(skip_count 0)
+
 foreach(file ${files})
-    message(STATUS "Uninstalling: ${file}")
-    
-    if(EXISTS "${file}")
-        execute_process(
-            COMMAND @CMAKE_COMMAND@ -E remove "${file}"
-            RESULT_VARIABLE result
-        )
+    if(NOT file STREQUAL "")
+        message(STATUS "Uninstalling: ${file}")
         
-        if(NOT result EQUAL 0)
-            message(FATAL_ERROR "Failed to remove file: ${file}")
+        if(EXISTS "${file}")
+            # Check if the file is readable before attempting removal
+            if(IS_SYMLINK "${file}")
+                execute_process(
+                    COMMAND @CMAKE_COMMAND@ -E remove "${file}"
+                    RESULT_VARIABLE result
+                    OUTPUT_VARIABLE output
+                    ERROR_VARIABLE error
+                )
+            else()
+                execute_process(
+                    COMMAND @CMAKE_COMMAND@ -E remove "${file}"
+                    RESULT_VARIABLE result
+                    OUTPUT_VARIABLE output
+                    ERROR_VARIABLE error
+                )
+            endif()
+            
+            if(result EQUAL 0)
+                math(EXPR success_count "${success_count} + 1")
+            else()
+                math(EXPR failed_count "${failed_count} + 1")
+                message(WARNING "Failed to remove file: ${file} (${error})")
+            endif()
+        else()
+            math(EXPR skip_count "${skip_count} + 1")
+            message(STATUS "File does not exist: ${file} - skipping")
         endif()
-    else()
-        message(STATUS "File does not exist: ${file} - skipping")
     endif()
 endforeach()
 
-message(STATUS "Uninstall completed successfully")
+# Try to remove empty directories and additional installation artifacts
+message(STATUS "Attempting to remove empty installation directories and shared files...")
+execute_process(
+    COMMAND @CMAKE_COMMAND@ -E remove_directory "@CMAKE_INSTALL_PREFIX@/share/path-keeper/translations"
+    OUTPUT_VARIABLE dir_output
+    ERROR_VARIABLE dir_error
+)
+
+# Remove pk.sh if it exists
+if(EXISTS "@CMAKE_INSTALL_PREFIX@/share/path-keeper/pk.sh")
+    message(STATUS "Removing: @CMAKE_INSTALL_PREFIX@/share/path-keeper/pk.sh")
+    execute_process(
+        COMMAND @CMAKE_COMMAND@ -E remove "@CMAKE_INSTALL_PREFIX@/share/path-keeper/pk.sh"
+        RESULT_VARIABLE pk_result
+        ERROR_VARIABLE pk_error
+    )
+    if(pk_result EQUAL 0)
+        math(EXPR success_count "${success_count} + 1")
+    else()
+        math(EXPR failed_count "${failed_count} + 1")
+        message(WARNING "Failed to remove pk.sh: ${pk_error}")
+    endif()
+endif()
+
+# Remove the share/path-keeper directory if it's empty
+execute_process(
+    COMMAND @CMAKE_COMMAND@ -E remove_directory "@CMAKE_INSTALL_PREFIX@/share/path-keeper"
+    OUTPUT_VARIABLE share_output
+    ERROR_VARIABLE share_error
+)
+
+# Print summary
+message(STATUS "========================================")
+message(STATUS "Uninstall Summary:")
+message(STATUS "  Successfully removed: ${success_count} files")
+message(STATUS "  Skipped (not found): ${skip_count} files")
+if(failed_count GREATER 0)
+    message(WARNING "  Failed to remove: ${failed_count} files")
+else()
+    message(STATUS "  Failed to remove: 0 files")
+endif()
+message(STATUS "========================================")
+
+if(failed_count GREATER 0)
+    message(FATAL_ERROR "Uninstall completed with errors. ${failed_count} file(s) could not be removed.")
+else()
+    message(STATUS "Uninstall completed successfully!")
+endif()
