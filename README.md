@@ -26,6 +26,7 @@ This version includes significant bug fixes and new features:
 - Shell Aliases: Create convenient shell aliases for frequently used command indices
 - Multi-line Commands: Support for editor-based multi-line command entry
 - Flexible Log Control: Per-command logging override with global fallback settings
+- Fzf and tmux needing if you want to use searching and command logging functions
 
 ## Usage Tips
 
@@ -137,6 +138,14 @@ sudo yum install qt5-devel
 sudo dnf install cmake pkgconfig jsoncpp-devel gcc-c++
 sudo dnf install qt5-devel
 ```
+> [!TIP]
+> This programe needs fzf and tmux.It should be executed in a tmux session to record outputs.
+
+Install fzf and tmux:  
+```bash
+sudo apt install fzf tmux
+```
+
 
 ### Build and Install
 
@@ -175,7 +184,6 @@ pk rehash              # Regenerate hashes after manual edits
 
 Log File Management:
 
-- Automatic cleanup of old logs based on max_age_days setting
 - Timestamped log entries for audit trail
 - Per-command execution tracking
 
