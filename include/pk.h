@@ -1,3 +1,17 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (C) 2026 Path Keeper Contributors
+// This file is part of Path Keeper.
+// Path Keeper is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// Path Keeper is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU General Public License for more details.
+// You should have received a copy of the GNU General Public License
+// along with Path Keeper. If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
 #include <fcntl.h>
 #include <jsoncpp/json/json.h>
@@ -23,11 +37,12 @@
 #include <vector>
 
 #include "loadfile.h"
+#include "terminal.h"
 class PathKeeper
 {
 private:
-    std::atomic<bool> stop_output_thread{false};
     File file;
+    Shell shell;
 
     void displayCommands(const Json::Value &commands, int parent_index = 0);
 
@@ -57,7 +72,6 @@ public:
     void runPoint(const std::string &cmd_index = "");
     void selectRun(const std::string &cmd_index = "",
                    const bool set_recent = true, const bool show = true);
-    void shellCommand(const std::string &command, const std::string &cwd);
 
     std::string cwd;
 };

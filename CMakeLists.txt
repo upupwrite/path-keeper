@@ -27,11 +27,28 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # 启用自动 MOC 处理（如需使用 Q_OBJECT 宏）
 set(CMAKE_AUTOMOC ON)
 
-# 包含头文件目录
-include_directories(include)
+set(SOURCES
+    src/info.cpp
+    src/interaction.cpp
+    src/loadfile.cpp
+    src/main.cpp
+    src/pk.cpp
+    src/terminal.cpp
+    src/search.cpp
+    src/log.cpp
+)
 
-# 自动查找 src 目录下的所有 cpp 文件
-file(GLOB SOURCES "src/*.cpp")
+set(HEADERS
+    include/colors.h
+    include/info.h
+    include/interaction.h
+    include/loadfile.h
+    include/pk.h
+    include/readline.h
+    include/search.h
+    include/terminal.h
+    include/log.h
+)
 
 # 查找 jsoncpp
 find_package(PkgConfig REQUIRED)
@@ -78,7 +95,7 @@ add_custom_target(update_translations
 add_custom_target(translations ALL DEPENDS ${QM_FILES})
 
 # 添加可执行文件
-add_executable(pk ${SOURCES})
+add_executable(pk ${SOURCES} ${HEADERS})
 
 # 链接必要的库：jsoncpp, readline, Qt Core 和 pthread
 target_link_libraries(pk PRIVATE
@@ -92,6 +109,7 @@ target_link_libraries(pk PRIVATE
 target_include_directories(pk PRIVATE
     ${JSONCPP_INCLUDE_DIRS}
     ${READLINE_INCLUDE_DIRS}
+    include
 )
 target_compile_options(pk PRIVATE ${READLINE_CFLAGS_OTHER})
 
