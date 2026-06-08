@@ -68,6 +68,7 @@ public:
     void setRecent(const std::string &cmd_index = "");
     void runRecent();
     void setCommand();
+    void search();
     Json::Value showRecord(const bool show = true);
     void runPoint(const std::string &cmd_index = "");
     void selectRun(const std::string &cmd_index = "",

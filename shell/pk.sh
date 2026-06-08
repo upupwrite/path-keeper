@@ -28,7 +28,7 @@ _pk_binary() {
 
 pk() {
     case "${1:-}" in
-        -e|"")
+        -e|""|search)
             local cmd_output
             cmd_output=$(_pk_binary "$@")
             if [ $? -eq 0 ] && [ -n "$cmd_output" ]; then

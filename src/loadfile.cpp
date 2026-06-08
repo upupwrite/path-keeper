@@ -769,7 +769,40 @@ void File::syncAllCommandsHash()
     saveConfig(config);
 }
 
-// ===================== Editor 类实现（保持不变） =====================
+int File::getCommandIndex(const std::string& dir, const std::string& commandStr)
+{
+    Json::Value config = loadConfig();
+    Json::Value paths = config["path"];
+    if (!paths.isMember(dir))
+        return -1;
+
+    Json::Value cmds = paths[dir];
+    if (!cmds.isArray())
+        return -1;
+
+    for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
+    {
+        // 获取原始命令
+        std::string cmd;
+        if (cmds[i].isObject() && cmds[i].isMember("cmd"))
+            cmd = cmds[i]["cmd"].asString();
+        else if (cmds[i].isString())
+            cmd = cmds[i].asString();  // 兼容旧格式
+        else
+            continue;
+
+        // 获取别名（如果有）
+        std::string alias;
+        if (cmds[i].isObject() && cmds[i].isMember("alias"))
+            alias = cmds[i]["alias"].asString();
+
+        // 匹配原始命令或别名
+        if (cmd == commandStr || (!alias.empty() && alias == commandStr))
+            return static_cast<int>(i);
+    }
+    return -1;
+}
+
 
 Editor::Editor()
     : COMMON_EDITORS({"vim", "nvim", "nano", "emacs", "micro", "helix", "code",

@@ -133,6 +133,7 @@ public:
     bool verifyAllCommandsHash();          // 原 const 去掉
     void syncCommandHash(const std::string& dir, int cmdIndex);
     void syncAllCommandsHash();
+    int getCommandIndex(const std::string& dir, const std::string& commandStr);
 
 private:
     // 辅助私有方法：获取命令对象的引用（用于修改配置）

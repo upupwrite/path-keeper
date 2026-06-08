@@ -23,6 +23,7 @@
 #include "colors.h"
 #include "json/value.h"
 #include "readline.h"
+#include "search.h"
 
 PathKeeper::PathKeeper()
 {
@@ -247,7 +248,19 @@ void PathKeeper::runCommand(const std::string &directory,
     // 如果需要日志记录，可以在这里根据 file.isCommandLogEnabled()
     // 决定是否记录日志 if (file.isCommandLogEnabled(directory, idx)) { ... }
 
-    shell.shellCommand(command, directory);
+    int idx=file.getCommandIndex(directory,command);
+    if(file.isGlobalLogEnabled()){
+        if(file.isCommandLogEnabled(directory,idx)){
+            shell.shellCommand(command, directory,true);
+        }
+        else {
+            shell.shellCommand(command, directory);
+        }
+    }
+    else {
+        shell.shellCommand(command, directory);
+    }
+
 }
 
 void PathKeeper::setRecent(const std::string &cmd_index)
@@ -547,4 +560,48 @@ void PathKeeper::processIndexSelection(const std::string &index_str,
                       << std::endl;
         }
     }
+}
+
+
+
+void PathKeeper::search(){
+    Json::Value config = file.loadConfig();
+        if (config.isNull() || config["path"].empty())
+        {
+            std::cerr << Colors::YELLOW
+                      << QCoreApplication::translate("runSearch", "没有记录，请先添加目录和命令。").toStdString()
+                      << Colors::RESET << std::endl;
+            return;
+        }
+
+        SearchResult result = Searcher::interactiveSearch(config, file);
+        if (!result.valid)
+        {
+            std::cerr << Colors::YELLOW
+                      << QCoreApplication::translate("runSearch", "未选择任何命令。").toStdString()
+                      << Colors::RESET << std::endl;
+            return;
+        }
+
+        // 保存最近记录
+        int origIdx = -1;
+        for (size_t i = 0; i < file.path_keys_order.size(); ++i)
+        {
+            if (file.path_keys_order[i] == result.directory)
+            {
+                origIdx = i;
+                break;
+            }
+        }
+        if (origIdx != -1)
+        {
+            Json::Value recent(Json::arrayValue);
+            recent.append(origIdx);
+            recent.append(result.commandIndex);
+            config["recent"] = recent;
+            file.saveConfig(config);
+        }
+
+        // 执行命令（传递目录、命令字符串和索引，以便记录日志）
+        runCommand(result.directory, result.effectiveCommand);
 }
