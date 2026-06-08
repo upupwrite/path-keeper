@@ -39,6 +39,7 @@ Shell::Shell()
     file.load_key_order();
 }
 
+// only one with std::cout
 void Shell::shellCommand(const std::string& command, const std::string& dir,
                          const bool record)
 {
