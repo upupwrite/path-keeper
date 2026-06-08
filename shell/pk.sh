@@ -32,6 +32,7 @@ pk() {
             local cmd_output
             cmd_output=$(_pk_binary "$@")
             if [ $? -eq 0 ] && [ -n "$cmd_output" ]; then
+                echo "$cmd_output"
                 eval "$cmd_output"
             else
                 echo "$cmd_output"

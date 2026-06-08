@@ -51,6 +51,15 @@ const std::string CONFIG_FILE = []() -> std::string
     }
     return "./.pk.json";
 }();
+const std::string LOG_FILE=[]()->std::string
+{
+        const char* home=std::getenv("HOME");
+        if(home){
+        return std::string(home)+"/.pk.log";
+
+}
+        return "./.pk.log";
+}();
 }  // namespace Achieve
 
 class JsonFormatter
@@ -93,6 +102,34 @@ public:
 
     int get_display_number_by_directory_index(int orig_index,
                                               const Json::Value& paths);
+
+    // ========== 新增：全局日志开关（去掉了 const） ==========
+    bool isGlobalLogEnabled();      // 原为 const，现去掉
+    void setGlobalLogEnabled(bool enabled);
+
+    // ========== 新增：命令级日志（去掉了 const） ==========
+    bool isCommandLogEnabled(const std::string& dir, int cmdIndex);   // 原 const 去掉
+    void setCommandLogEnabled(const std::string& dir, int cmdIndex, bool enabled);
+
+    // ========== 新增：命令别名管理（去掉了 const） ==========
+    std::string getCommandAlias(const std::string& dir, int cmdIndex);   // 原 const 去掉
+    void setCommandAlias(const std::string& dir, int cmdIndex, const std::string& alias);
+    std::string getEffectiveCommand(const std::string& dir, int cmdIndex); // 原 const 去掉
+
+    // ========== 新增：命令哈希管理（去掉了 const） ==========
+    std::string computeCommandHash(const std::string& dir, int cmdIndex); // 原 const 去掉
+    std::string getCommandHash(const std::string& dir, int cmdIndex);     // 原 const 去掉
+    void setCommandHash(const std::string& dir, int cmdIndex, const std::string& hash);
+    bool verifyCommandHash(const std::string& dir, int cmdIndex);         // 原 const 去掉
+    bool verifyAllCommandsHash();                                         // 原 const 去掉
+    void syncCommandHash(const std::string& dir, int cmdIndex);
+    void syncAllCommandsHash();
+
+private:
+    // 辅助私有方法：获取命令对象的引用（用于修改配置）
+    Json::Value& getCommandObject(const std::string& dir, int cmdIndex);
+    // 配置格式升级（旧字符串数组 → 新对象数组）
+    void upgradeConfigFormat(Json::Value& config);
 };
 
 class Editor

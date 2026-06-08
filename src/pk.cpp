@@ -93,11 +93,16 @@ void PathKeeper::addRecord()
         std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ")
                          .toStdString()
                   << default_command << std::endl;
-        commands.append(default_command);
+        // 存储为对象格式
+        Json::Value newCmd;
+        newCmd["cmd"] = default_command;
+        commands.append(newCmd);
     }
     else if (!cmd.empty())
     {
-        commands.append(cmd);
+        Json::Value newCmd;
+        newCmd["cmd"] = cmd;
+        commands.append(newCmd);
     }
 
     config["path"][directory] = commands;
@@ -165,19 +170,17 @@ void PathKeeper::runRecent()
             return;
         }
 
-        Json::Value commands = paths[directory];
-
-        if (idx2 < 0 || idx2 >= static_cast<int>(commands.size()))
+        // 使用新的 getEffectiveCommand 获取实际要执行的命令（支持别名）
+        std::string command = file.getEffectiveCommand(directory, idx2);
+        if (command.empty())
         {
             std::cerr << Colors::RED
-                      << QCoreApplication::translate("runRecent",
-                                                     "最近记录无效!")
+                      << QCoreApplication::translate("runRecent", "命令无效!")
                              .toStdString()
                       << Colors::RESET << std::endl;
             return;
         }
 
-        std::string command = commands[idx2].asString();
         runCommand(directory, command);
     }
     catch (const std::exception &)
@@ -240,6 +243,9 @@ void PathKeeper::runCommand(const std::string &directory,
         << Colors::YELLOW
         << QCoreApplication::translate("runCommand", "执行命令: ").toStdString()
         << command << Colors::RESET << std::endl;
+
+    // 如果需要日志记录，可以在这里根据 file.isCommandLogEnabled() 决定是否记录日志
+    // if (file.isCommandLogEnabled(directory, idx)) { ... }
 
     shell.shellCommand(command, directory);
 }
@@ -306,16 +312,25 @@ void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
 {
     for (Json::ArrayIndex j = 0; j < commands.size(); j++)
     {
+        // 获取命令的原始 cmd 字符串（用于显示）
+        std::string cmd_str;
+        if (commands[j].isObject() && commands[j].isMember("cmd"))
+            cmd_str = commands[j]["cmd"].asString();
+        else if (commands[j].isString())
+            cmd_str = commands[j].asString();  // 兼容旧格式
+        else
+            cmd_str = "???";
+
         if (parent_index > 0)
         {
             std::cerr << "    " << Colors::CYAN << "[" << parent_index << "."
                       << (j + 1) << "]" << Colors::RESET << " "
-                      << commands[j].asString() << std::endl;
+                      << cmd_str << std::endl;
         }
         else
         {
             std::cerr << "    " << Colors::CYAN << "[" << (j + 1) << "]"
-                      << Colors::RESET << " " << commands[j].asString()
+                      << Colors::RESET << " " << cmd_str
                       << std::endl;
         }
     }
@@ -384,6 +399,7 @@ bool PathKeeper::parseIndex(const std::string &index_str,
             directory = valid_dirs[display_num - 1];
             Json::Value commands = paths[directory];
 
+            // 验证命令索引是否有效（不一定需要立即获取命令字符串）
             return (cmd_idx >= 0 &&
                     cmd_idx < static_cast<int>(commands.size()));
         }
@@ -486,8 +502,17 @@ void PathKeeper::processIndexSelection(const std::string &index_str,
         return;
     }
 
-    Json::Value commands = paths[directory];
-    std::string command = commands[cmd_idx].asString();
+    // 使用新接口获取实际要执行的命令（支持别名）
+    std::string command = file.getEffectiveCommand(directory, cmd_idx);
+    if (command.empty())
+    {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("processIndexSelection",
+                                                 "命令无效或不存在!")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
 
     if (execute_command)
     {

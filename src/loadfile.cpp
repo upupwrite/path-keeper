@@ -20,10 +20,12 @@
 #include <chrono>
 #include <ctime>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <map>
 #include <sstream>
+#include <string>
 
 #include "colors.h"
 
@@ -36,6 +38,7 @@ namespace
 const Json::Value DEFAULT_CONFIG = []()
 {
     Json::Value config;
+    config["global_log"] = false;                 // 新增全局日志开关
     config["path"] = Json::objectValue;
     config["recent"] = Json::nullValue;
     config["shell"] = "sh";
@@ -233,6 +236,44 @@ void JsonFormatter::writeObject(const Json::Value &obj, int extraIndent,
 
 File::File() { CONFIG_FILE = Achieve::CONFIG_FILE; }
 
+// 升级旧配置格式到新格式（字符串数组 → 对象数组）
+void File::upgradeConfigFormat(Json::Value& config)
+{
+    bool changed = false;
+    Json::Value& paths = config["path"];
+    if (!paths.isObject())
+        return;
+
+    Json::Value::Members dirs = paths.getMemberNames();
+    for (const auto& dir : dirs)
+    {
+        Json::Value& commands = paths[dir];
+        if (commands.isArray())
+        {
+            for (Json::ArrayIndex i = 0; i < commands.size(); ++i)
+            {
+                if (commands[i].isString())
+                {
+                    // 旧格式：字符串，转换为 { "cmd": "..." }
+                    std::string oldCmd = commands[i].asString();
+                    Json::Value newCmd;
+                    newCmd["cmd"] = oldCmd;
+                    commands[i] = newCmd;
+                    changed = true;
+                }
+            }
+        }
+    }
+
+    if (changed)
+    {
+        // 确保 global_log 存在
+        if (!config.isMember("global_log"))
+            config["global_log"] = false;
+        saveConfig(config);
+    }
+}
+
 Json::Value File::loadConfig()
 {
     std::ifstream file(CONFIG_FILE);
@@ -256,6 +297,11 @@ Json::Value File::loadConfig()
             config["shell"] = "sh";
         if (!config.isMember("editor"))
             config["editor"] = "";
+        if (!config.isMember("global_log"))
+            config["global_log"] = false;
+
+        // 升级旧格式（字符串数组 → 对象数组）
+        upgradeConfigFormat(config);
     }
     catch (const Json::Exception &e)
     {
@@ -288,17 +334,21 @@ void File::saveConfig(const Json::Value &config)
         }
     }
 
-    // 使用与文件1相同的格式：先写起始大括号和path字段
+    // 使用与文件1相同的格式：先写起始大括号和global_log、path字段
     file << "{\n";
 
+    // 写入 global_log
+    file << "  \"global_log\": ";
+    JsonFormatter(file, 2).writeValue(config["global_log"], 2);
+
     // 写入 path 部分，使用特定的键顺序
-    file << "  \"path\": ";
+    file << ",\n  \"path\": ";
     {
         JsonFormatter formatter(file, 2);
         formatter.writeObject(paths, 2, orderedKeys);
     }
 
-    // 写入其他字段（保持与文件1相同的格式）
+    // 写入其他字段
     if (config.isMember("recent") && !config["recent"].isNull())
     {
         file << ",\n  \"recent\": ";
@@ -464,6 +514,213 @@ int File::get_display_number_by_directory_index(int orig_index,
 
     return -1;
 }
+
+// ===================== 新增功能：命令级元数据管理 =====================
+
+// 辅助函数：获取命令对象的引用（用于读写）
+Json::Value& File::getCommandObject(const std::string& dir, int cmdIndex)
+{
+    Json::Value config = loadConfig(); // 临时加载，但修改后需保存
+    // 注意：此实现会多次加载配置，性能较低，实际使用时建议缓存 config 成员变量
+    // 为简单起见，直接操作并保存，后续保存函数会写回文件。
+    static Json::Value cachedConfig;   // 简单静态缓存，仅作演示
+    static bool loaded = false;
+    if (!loaded) {
+        cachedConfig = loadConfig();
+        loaded = true;
+    }
+    Json::Value& paths = cachedConfig["path"];
+    if (!paths.isMember(dir)) {
+        throw std::out_of_range("Directory not found: " + dir);
+    }
+    Json::Value& cmdArray = paths[dir];
+    if (!cmdArray.isArray() || cmdIndex < 0 || cmdIndex >= (int)cmdArray.size()) {
+        throw std::out_of_range("Command index out of range");
+    }
+    return cmdArray[cmdIndex];
+}
+
+// 获取全局日志开关状态
+bool File::isGlobalLogEnabled()
+{
+    Json::Value config = loadConfig();
+    return config["global_log"].asBool();
+}
+
+// 设置全局日志开关
+void File::setGlobalLogEnabled(bool enabled)
+{
+    Json::Value config = loadConfig();
+    config["global_log"] = enabled;
+    saveConfig(config);
+}
+
+// 获取指定命令的日志开关（若命令单独定义则返回命令的log，否则返回全局log）
+bool File::isCommandLogEnabled(const std::string& dir, int cmdIndex)
+{
+    try {
+        Json::Value config = loadConfig();
+        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("log")) {
+            return cmdObj["log"].asBool();
+        }
+        return config["global_log"].asBool();
+    } catch (...) {
+        return isGlobalLogEnabled(); // 出错时回退到全局设置
+    }
+}
+
+// 设置指定命令的日志开关
+void File::setCommandLogEnabled(const std::string& dir, int cmdIndex, bool enabled)
+{
+    Json::Value config = loadConfig();
+    Json::Value& cmdObj = config["path"][dir][cmdIndex];
+    cmdObj["log"] = enabled;
+    saveConfig(config);
+}
+
+// 获取命令别名
+std::string File::getCommandAlias(const std::string& dir, int cmdIndex)
+{
+    try {
+        Json::Value config = loadConfig();
+        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("alias") && cmdObj["alias"].isString()) {
+            return cmdObj["alias"].asString();
+        }
+    } catch (...) {}
+    return "";
+}
+
+// 设置命令别名
+void File::setCommandAlias(const std::string& dir, int cmdIndex, const std::string& alias)
+{
+    Json::Value config = loadConfig();
+    Json::Value& cmdObj = config["path"][dir][cmdIndex];
+    if (alias.empty()) {
+        if (cmdObj.isMember("alias"))
+            cmdObj.removeMember("alias");
+    } else {
+        cmdObj["alias"] = alias;
+    }
+    saveConfig(config);
+}
+
+// 获取实际执行的命令字符串（优先使用别名，否则使用原cmd）
+std::string File::getEffectiveCommand(const std::string& dir, int cmdIndex)
+{
+//    std::string alias = getCommandAlias(dir, cmdIndex);
+//    if (!alias.empty())
+//        return alias;
+    try {
+        Json::Value config = loadConfig();
+        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString()) {
+            return cmdObj["cmd"].asString();
+        }
+    } catch (...) {}
+    return "";
+}
+
+// 计算命令的哈希值（基于 cmd 字段）
+std::string File::computeCommandHash(const std::string& dir, int cmdIndex)
+{
+    std::string cmdStr;
+    try {
+        Json::Value config = loadConfig();
+        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString()) {
+            cmdStr = cmdObj["cmd"].asString();
+        } else {
+            return "";
+        }
+    } catch (...) {
+        return "";
+    }
+    std::size_t h = std::hash<std::string>{}(cmdStr);
+    std::stringstream ss;
+    ss << std::hex << std::setw(sizeof(h)*2) << std::setfill('0') << h;
+    return ss.str();
+}
+
+// 获取存储的命令哈希值
+std::string File::getCommandHash(const std::string& dir, int cmdIndex)
+{
+    try {
+        Json::Value config = loadConfig();
+        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("hash") && cmdObj["hash"].isString()) {
+            return cmdObj["hash"].asString();
+        }
+    } catch (...) {}
+    return "";
+}
+
+// 设置（更新）命令哈希值
+void File::setCommandHash(const std::string& dir, int cmdIndex, const std::string& hash)
+{
+    Json::Value config = loadConfig();
+    Json::Value& cmdObj = config["path"][dir][cmdIndex];
+    if (hash.empty()) {
+        if (cmdObj.isMember("hash"))
+            cmdObj.removeMember("hash");
+    } else {
+        cmdObj["hash"] = hash;
+    }
+    saveConfig(config);
+}
+
+// 验证单个命令哈希是否一致
+bool File::verifyCommandHash(const std::string& dir, int cmdIndex)
+{
+    std::string stored = getCommandHash(dir, cmdIndex);
+    std::string computed = computeCommandHash(dir, cmdIndex);
+    if (stored.empty() && computed.empty()) return true; // 无哈希视为一致
+    return stored == computed;
+}
+
+// 验证所有命令的哈希是否一致
+bool File::verifyAllCommandsHash()
+{
+    Json::Value config = loadConfig();
+    Json::Value paths = config["path"];
+    Json::Value::Members dirs = paths.getMemberNames();
+    for (const auto& dir : dirs) {
+        const Json::Value& cmds = paths[dir];
+        if (!cmds.isArray()) continue;
+        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i) {
+            if (!verifyCommandHash(dir, i))
+                return false;
+        }
+    }
+    return true;
+}
+
+// 同步（重新计算并更新）单个命令的哈希
+void File::syncCommandHash(const std::string& dir, int cmdIndex)
+{
+    std::string newHash = computeCommandHash(dir, cmdIndex);
+    setCommandHash(dir, cmdIndex, newHash);
+}
+
+// 同步所有命令的哈希
+void File::syncAllCommandsHash()
+{
+    Json::Value config = loadConfig();
+    Json::Value paths = config["path"];
+    Json::Value::Members dirs = paths.getMemberNames();
+    for (const auto& dir : dirs) {
+        Json::Value& cmds = paths[dir];
+        if (!cmds.isArray()) continue;
+        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i) {
+            std::string newHash = computeCommandHash(dir, i);
+            cmds[i]["hash"] = newHash;
+        }
+    }
+    saveConfig(config);
+}
+
+// ===================== Editor 类实现（保持不变） =====================
 
 Editor::Editor()
     : COMMON_EDITORS({"vim", "nvim", "nano", "emacs", "micro", "helix", "code",
