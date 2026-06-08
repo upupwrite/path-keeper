@@ -244,8 +244,8 @@ void PathKeeper::runCommand(const std::string &directory,
         << QCoreApplication::translate("runCommand", "执行命令: ").toStdString()
         << command << Colors::RESET << std::endl;
 
-    // 如果需要日志记录，可以在这里根据 file.isCommandLogEnabled() 决定是否记录日志
-    // if (file.isCommandLogEnabled(directory, idx)) { ... }
+    // 如果需要日志记录，可以在这里根据 file.isCommandLogEnabled()
+    // 决定是否记录日志 if (file.isCommandLogEnabled(directory, idx)) { ... }
 
     shell.shellCommand(command, directory);
 }
@@ -324,14 +324,13 @@ void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
         if (parent_index > 0)
         {
             std::cerr << "    " << Colors::CYAN << "[" << parent_index << "."
-                      << (j + 1) << "]" << Colors::RESET << " "
-                      << cmd_str << std::endl;
+                      << (j + 1) << "]" << Colors::RESET << " " << cmd_str
+                      << std::endl;
         }
         else
         {
             std::cerr << "    " << Colors::CYAN << "[" << (j + 1) << "]"
-                      << Colors::RESET << " " << cmd_str
-                      << std::endl;
+                      << Colors::RESET << " " << cmd_str << std::endl;
         }
     }
 }

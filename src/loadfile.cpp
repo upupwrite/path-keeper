@@ -38,7 +38,7 @@ namespace
 const Json::Value DEFAULT_CONFIG = []()
 {
     Json::Value config;
-    config["global_log"] = false;                 // 新增全局日志开关
+    config["global_log"] = false;  // 新增全局日志开关
     config["path"] = Json::objectValue;
     config["recent"] = Json::nullValue;
     config["shell"] = "sh";
@@ -90,7 +90,7 @@ void JsonFormatter::writeIndent()
     }
 }
 
-void JsonFormatter::writeString(const std::string &str)
+void JsonFormatter::writeString(const std::string& str)
 {
     os_ << '"';
     for (char c : str)
@@ -100,7 +100,7 @@ void JsonFormatter::writeString(const std::string &str)
     os_ << '"';
 }
 
-void JsonFormatter::writeValue(const Json::Value &value, int extraIndent)
+void JsonFormatter::writeValue(const Json::Value& value, int extraIndent)
 {
     switch (value.type())
     {
@@ -131,7 +131,7 @@ void JsonFormatter::writeValue(const Json::Value &value, int extraIndent)
     }
 }
 
-void JsonFormatter::writeArray(const Json::Value &array, int extraIndent)
+void JsonFormatter::writeArray(const Json::Value& array, int extraIndent)
 {
     if (array.empty())
     {
@@ -159,7 +159,7 @@ void JsonFormatter::writeArray(const Json::Value &array, int extraIndent)
 }
 
 // 原始函数：按字母顺序写入对象
-void JsonFormatter::writeObject(const Json::Value &obj, int extraIndent)
+void JsonFormatter::writeObject(const Json::Value& obj, int extraIndent)
 {
     if (obj.empty())
     {
@@ -195,8 +195,8 @@ void JsonFormatter::writeObject(const Json::Value &obj, int extraIndent)
 }
 
 // 新增重载函数：按照指定顺序写入对象
-void JsonFormatter::writeObject(const Json::Value &obj, int extraIndent,
-                                const std::vector<std::string> &keyOrder)
+void JsonFormatter::writeObject(const Json::Value& obj, int extraIndent,
+                                const std::vector<std::string>& keyOrder)
 {
     if (obj.empty())
     {
@@ -209,7 +209,7 @@ void JsonFormatter::writeObject(const Json::Value &obj, int extraIndent,
     bool first = true;
 
     // 使用指定的顺序
-    for (const auto &key : keyOrder)
+    for (const auto& key : keyOrder)
     {
         if (!obj.isMember(key))
             continue;
@@ -303,7 +303,7 @@ Json::Value File::loadConfig()
         // 升级旧格式（字符串数组 → 对象数组）
         upgradeConfigFormat(config);
     }
-    catch (const Json::Exception &e)
+    catch (const Json::Exception& e)
     {
         std::cerr << Colors::RED << "解析配置文件错误: " << e.what()
                   << Colors::RESET << std::endl;
@@ -312,7 +312,7 @@ Json::Value File::loadConfig()
     return config;
 }
 
-void File::saveConfig(const Json::Value &config)
+void File::saveConfig(const Json::Value& config)
 {
     std::ofstream file(CONFIG_FILE);
     if (!file.is_open())
@@ -448,7 +448,7 @@ void File::load_key_order()
     }
 }
 
-std::vector<std::string> File::get_valid_directories(const Json::Value &paths)
+std::vector<std::string> File::get_valid_directories(const Json::Value& paths)
 {
     std::vector<std::string> validDirs;
 
@@ -465,7 +465,7 @@ std::vector<std::string> File::get_valid_directories(const Json::Value &paths)
 }
 
 int File::get_directory_index_by_display_number(int display_num,
-                                                const Json::Value &paths)
+                                                const Json::Value& paths)
 {
     std::vector<std::string> validDirs = get_valid_directories(paths);
 
@@ -489,7 +489,7 @@ int File::get_directory_index_by_display_number(int display_num,
 }
 
 int File::get_display_number_by_directory_index(int orig_index,
-                                                const Json::Value &paths)
+                                                const Json::Value& paths)
 {
     if (orig_index < 0 ||
         orig_index >= static_cast<int>(path_keys_order.size()))
@@ -520,21 +520,24 @@ int File::get_display_number_by_directory_index(int orig_index,
 // 辅助函数：获取命令对象的引用（用于读写）
 Json::Value& File::getCommandObject(const std::string& dir, int cmdIndex)
 {
-    Json::Value config = loadConfig(); // 临时加载，但修改后需保存
+    Json::Value config = loadConfig();  // 临时加载，但修改后需保存
     // 注意：此实现会多次加载配置，性能较低，实际使用时建议缓存 config 成员变量
     // 为简单起见，直接操作并保存，后续保存函数会写回文件。
-    static Json::Value cachedConfig;   // 简单静态缓存，仅作演示
+    static Json::Value cachedConfig;  // 简单静态缓存，仅作演示
     static bool loaded = false;
-    if (!loaded) {
+    if (!loaded)
+    {
         cachedConfig = loadConfig();
         loaded = true;
     }
     Json::Value& paths = cachedConfig["path"];
-    if (!paths.isMember(dir)) {
+    if (!paths.isMember(dir))
+    {
         throw std::out_of_range("Directory not found: " + dir);
     }
     Json::Value& cmdArray = paths[dir];
-    if (!cmdArray.isArray() || cmdIndex < 0 || cmdIndex >= (int)cmdArray.size()) {
+    if (!cmdArray.isArray() || cmdIndex < 0 || cmdIndex >= (int)cmdArray.size())
+    {
         throw std::out_of_range("Command index out of range");
     }
     return cmdArray[cmdIndex];
@@ -558,20 +561,26 @@ void File::setGlobalLogEnabled(bool enabled)
 // 获取指定命令的日志开关（若命令单独定义则返回命令的log，否则返回全局log）
 bool File::isCommandLogEnabled(const std::string& dir, int cmdIndex)
 {
-    try {
+    try
+    {
         Json::Value config = loadConfig();
-        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
-        if (cmdObj.isMember("log")) {
+        Json::Value& cmdObj =
+            const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("log"))
+        {
             return cmdObj["log"].asBool();
         }
         return config["global_log"].asBool();
-    } catch (...) {
-        return isGlobalLogEnabled(); // 出错时回退到全局设置
+    }
+    catch (...)
+    {
+        return isGlobalLogEnabled();  // 出错时回退到全局设置
     }
 }
 
 // 设置指定命令的日志开关
-void File::setCommandLogEnabled(const std::string& dir, int cmdIndex, bool enabled)
+void File::setCommandLogEnabled(const std::string& dir, int cmdIndex,
+                                bool enabled)
 {
     Json::Value config = loadConfig();
     Json::Value& cmdObj = config["path"][dir][cmdIndex];
@@ -582,25 +591,35 @@ void File::setCommandLogEnabled(const std::string& dir, int cmdIndex, bool enabl
 // 获取命令别名
 std::string File::getCommandAlias(const std::string& dir, int cmdIndex)
 {
-    try {
+    try
+    {
         Json::Value config = loadConfig();
-        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
-        if (cmdObj.isMember("alias") && cmdObj["alias"].isString()) {
+        Json::Value& cmdObj =
+            const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("alias") && cmdObj["alias"].isString())
+        {
             return cmdObj["alias"].asString();
         }
-    } catch (...) {}
+    }
+    catch (...)
+    {
+    }
     return "";
 }
 
 // 设置命令别名
-void File::setCommandAlias(const std::string& dir, int cmdIndex, const std::string& alias)
+void File::setCommandAlias(const std::string& dir, int cmdIndex,
+                           const std::string& alias)
 {
     Json::Value config = loadConfig();
     Json::Value& cmdObj = config["path"][dir][cmdIndex];
-    if (alias.empty()) {
+    if (alias.empty())
+    {
         if (cmdObj.isMember("alias"))
             cmdObj.removeMember("alias");
-    } else {
+    }
+    else
+    {
         cmdObj["alias"] = alias;
     }
     saveConfig(config);
@@ -609,16 +628,22 @@ void File::setCommandAlias(const std::string& dir, int cmdIndex, const std::stri
 // 获取实际执行的命令字符串（优先使用别名，否则使用原cmd）
 std::string File::getEffectiveCommand(const std::string& dir, int cmdIndex)
 {
-//    std::string alias = getCommandAlias(dir, cmdIndex);
-//    if (!alias.empty())
-//        return alias;
-    try {
+    //    std::string alias = getCommandAlias(dir, cmdIndex);
+    //    if (!alias.empty())
+    //        return alias;
+    try
+    {
         Json::Value config = loadConfig();
-        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
-        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString()) {
+        Json::Value& cmdObj =
+            const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString())
+        {
             return cmdObj["cmd"].asString();
         }
-    } catch (...) {}
+    }
+    catch (...)
+    {
+    }
     return "";
 }
 
@@ -626,45 +651,62 @@ std::string File::getEffectiveCommand(const std::string& dir, int cmdIndex)
 std::string File::computeCommandHash(const std::string& dir, int cmdIndex)
 {
     std::string cmdStr;
-    try {
+    try
+    {
         Json::Value config = loadConfig();
-        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
-        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString()) {
+        Json::Value& cmdObj =
+            const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("cmd") && cmdObj["cmd"].isString())
+        {
             cmdStr = cmdObj["cmd"].asString();
-        } else {
+        }
+        else
+        {
             return "";
         }
-    } catch (...) {
+    }
+    catch (...)
+    {
         return "";
     }
     std::size_t h = std::hash<std::string>{}(cmdStr);
     std::stringstream ss;
-    ss << std::hex << std::setw(sizeof(h)*2) << std::setfill('0') << h;
+    ss << std::hex << std::setw(sizeof(h) * 2) << std::setfill('0') << h;
     return ss.str();
 }
 
 // 获取存储的命令哈希值
 std::string File::getCommandHash(const std::string& dir, int cmdIndex)
 {
-    try {
+    try
+    {
         Json::Value config = loadConfig();
-        Json::Value& cmdObj = const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
-        if (cmdObj.isMember("hash") && cmdObj["hash"].isString()) {
+        Json::Value& cmdObj =
+            const_cast<Json::Value&>(config["path"][dir][cmdIndex]);
+        if (cmdObj.isMember("hash") && cmdObj["hash"].isString())
+        {
             return cmdObj["hash"].asString();
         }
-    } catch (...) {}
+    }
+    catch (...)
+    {
+    }
     return "";
 }
 
 // 设置（更新）命令哈希值
-void File::setCommandHash(const std::string& dir, int cmdIndex, const std::string& hash)
+void File::setCommandHash(const std::string& dir, int cmdIndex,
+                          const std::string& hash)
 {
     Json::Value config = loadConfig();
     Json::Value& cmdObj = config["path"][dir][cmdIndex];
-    if (hash.empty()) {
+    if (hash.empty())
+    {
         if (cmdObj.isMember("hash"))
             cmdObj.removeMember("hash");
-    } else {
+    }
+    else
+    {
         cmdObj["hash"] = hash;
     }
     saveConfig(config);
@@ -675,7 +717,8 @@ bool File::verifyCommandHash(const std::string& dir, int cmdIndex)
 {
     std::string stored = getCommandHash(dir, cmdIndex);
     std::string computed = computeCommandHash(dir, cmdIndex);
-    if (stored.empty() && computed.empty()) return true; // 无哈希视为一致
+    if (stored.empty() && computed.empty())
+        return true;  // 无哈希视为一致
     return stored == computed;
 }
 
@@ -685,10 +728,13 @@ bool File::verifyAllCommandsHash()
     Json::Value config = loadConfig();
     Json::Value paths = config["path"];
     Json::Value::Members dirs = paths.getMemberNames();
-    for (const auto& dir : dirs) {
+    for (const auto& dir : dirs)
+    {
         const Json::Value& cmds = paths[dir];
-        if (!cmds.isArray()) continue;
-        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i) {
+        if (!cmds.isArray())
+            continue;
+        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
+        {
             if (!verifyCommandHash(dir, i))
                 return false;
         }
@@ -709,10 +755,13 @@ void File::syncAllCommandsHash()
     Json::Value config = loadConfig();
     Json::Value paths = config["path"];
     Json::Value::Members dirs = paths.getMemberNames();
-    for (const auto& dir : dirs) {
+    for (const auto& dir : dirs)
+    {
         Json::Value& cmds = paths[dir];
-        if (!cmds.isArray()) continue;
-        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i) {
+        if (!cmds.isArray())
+            continue;
+        for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
+        {
             std::string newHash = computeCommandHash(dir, i);
             cmds[i]["hash"] = newHash;
         }
@@ -728,11 +777,11 @@ Editor::Editor()
                       "joe"})
 {
 }
-std::string Editor::findInPath(const std::string &prog)
+std::string Editor::findInPath(const std::string& prog)
 {
     // 使用 which 命令查找可执行文件的完整路径
     std::string cmd = "which " + prog + " 2>/dev/null";
-    FILE *pipe = popen(cmd.c_str(), "r");
+    FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe)
         return "";
 
@@ -763,7 +812,7 @@ std::string Editor::findInPath(const std::string &prog)
 std::vector<std::pair<std::string, std::string>> Editor::getAvailableEditors()
 {
     std::vector<std::pair<std::string, std::string>> available;
-    for (const auto &name : COMMON_EDITORS)
+    for (const auto& name : COMMON_EDITORS)
     {
         std::string path = findInPath(name);
         if (!path.empty())
@@ -775,7 +824,7 @@ std::vector<std::pair<std::string, std::string>> Editor::getAvailableEditors()
 }
 
 void Editor::printMenu(
-    const std::vector<std::pair<std::string, std::string>> &editors)
+    const std::vector<std::pair<std::string, std::string>>& editors)
 {
     std::cerr << "\nAvailable editors on your system:\n";
     for (size_t i = 0; i < editors.size(); ++i)
@@ -787,7 +836,7 @@ void Editor::printMenu(
 }
 
 std::string Editor::getUserChoice(
-    const std::vector<std::pair<std::string, std::string>> &editors)
+    const std::vector<std::pair<std::string, std::string>>& editors)
 {
     while (true)
     {
@@ -803,7 +852,7 @@ std::string Editor::getUserChoice(
             continue;
 
         // 尝试解析为数字
-        char *end;
+        char* end;
         long choice = strtol(input.c_str(), &end, 10);
         if (*end != '\0')
         {
@@ -860,7 +909,7 @@ std::string Editor::getUserChoice(
 std::string Editor::getEditor() { return config["editor"].asString(); }
 
 // 设置 editor 配置
-void Editor::setEditor(const std::string &newEditor)
+void Editor::setEditor(const std::string& newEditor)
 {
     config["editor"] = newEditor;
     file.saveConfig(config);

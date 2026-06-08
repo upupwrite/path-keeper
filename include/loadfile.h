@@ -51,14 +51,14 @@ const std::string CONFIG_FILE = []() -> std::string
     }
     return "./.pk.json";
 }();
-const std::string LOG_FILE=[]()->std::string
+const std::string LOG_FILE = []() -> std::string
 {
-        const char* home=std::getenv("HOME");
-        if(home){
-        return std::string(home)+"/.pk.log";
-
-}
-        return "./.pk.log";
+    const char* home = std::getenv("HOME");
+    if (home)
+    {
+        return std::string(home) + "/.pk.log";
+    }
+    return "./.pk.log";
 }();
 }  // namespace Achieve
 
@@ -104,24 +104,33 @@ public:
                                               const Json::Value& paths);
 
     // ========== 新增：全局日志开关（去掉了 const） ==========
-    bool isGlobalLogEnabled();      // 原为 const，现去掉
+    bool isGlobalLogEnabled();  // 原为 const，现去掉
     void setGlobalLogEnabled(bool enabled);
 
     // ========== 新增：命令级日志（去掉了 const） ==========
-    bool isCommandLogEnabled(const std::string& dir, int cmdIndex);   // 原 const 去掉
-    void setCommandLogEnabled(const std::string& dir, int cmdIndex, bool enabled);
+    bool isCommandLogEnabled(const std::string& dir,
+                             int cmdIndex);  // 原 const 去掉
+    void setCommandLogEnabled(const std::string& dir, int cmdIndex,
+                              bool enabled);
 
     // ========== 新增：命令别名管理（去掉了 const） ==========
-    std::string getCommandAlias(const std::string& dir, int cmdIndex);   // 原 const 去掉
-    void setCommandAlias(const std::string& dir, int cmdIndex, const std::string& alias);
-    std::string getEffectiveCommand(const std::string& dir, int cmdIndex); // 原 const 去掉
+    std::string getCommandAlias(const std::string& dir,
+                                int cmdIndex);  // 原 const 去掉
+    void setCommandAlias(const std::string& dir, int cmdIndex,
+                         const std::string& alias);
+    std::string getEffectiveCommand(const std::string& dir,
+                                    int cmdIndex);  // 原 const 去掉
 
     // ========== 新增：命令哈希管理（去掉了 const） ==========
-    std::string computeCommandHash(const std::string& dir, int cmdIndex); // 原 const 去掉
-    std::string getCommandHash(const std::string& dir, int cmdIndex);     // 原 const 去掉
-    void setCommandHash(const std::string& dir, int cmdIndex, const std::string& hash);
-    bool verifyCommandHash(const std::string& dir, int cmdIndex);         // 原 const 去掉
-    bool verifyAllCommandsHash();                                         // 原 const 去掉
+    std::string computeCommandHash(const std::string& dir,
+                                   int cmdIndex);  // 原 const 去掉
+    std::string getCommandHash(const std::string& dir,
+                               int cmdIndex);  // 原 const 去掉
+    void setCommandHash(const std::string& dir, int cmdIndex,
+                        const std::string& hash);
+    bool verifyCommandHash(const std::string& dir,
+                           int cmdIndex);  // 原 const 去掉
+    bool verifyAllCommandsHash();          // 原 const 去掉
     void syncCommandHash(const std::string& dir, int cmdIndex);
     void syncAllCommandsHash();
 
