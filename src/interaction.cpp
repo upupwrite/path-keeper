@@ -102,6 +102,9 @@ void Interaction::main(int argc, char **argv)
         {
             pk.search();
         }
+        else if(option=="log"){
+            shell.shellCommand("less .pk.log","~");
+        }
         else if (option == "config")
         {
             Editor editor;
