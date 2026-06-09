@@ -9,17 +9,17 @@
         <translation>当前所在的目录:</translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="167"/>
+        <location filename="../src/interaction.cpp" line="168"/>
         <source>未知选项: </source>
         <translation>未知选项: </translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="171"/>
+        <location filename="../src/interaction.cpp" line="172"/>
         <source>用法</source>
         <translation>用法</translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="182"/>
+        <location filename="../src/interaction.cpp" line="183"/>
         <source>错误: </source>
         <translation>错误: </translation>
     </message>
@@ -27,39 +27,39 @@
 <context>
     <name>Searcher</name>
     <message>
-        <location filename="../src/search.cpp" line="110"/>
+        <location filename="../src/search.cpp" line="111"/>
         <source>无法创建临时文件</source>
         <translation>无法创建临时文件</translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="125"/>
+        <location filename="../src/search.cpp" line="128"/>
         <source>无法运行 fzf</source>
         <translation>无法运行 fzf</translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="145"/>
+        <location filename="../src/search.cpp" line="149"/>
         <source>可用命令列表:
 </source>
         <translation>可用命令列表:
 </translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="149"/>
+        <location filename="../src/search.cpp" line="154"/>
         <source>请输入要执行的编号 (例如 5.1): </source>
         <translation>请输入要执行的编号 (例如 5.1): </translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="161"/>
+        <location filename="../src/search.cpp" line="168"/>
         <source>无效的选择格式</source>
         <translation>无效的选择格式</translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="172"/>
+        <location filename="../src/search.cpp" line="180"/>
         <source>目录编号超出范围</source>
         <translation>目录编号超出范围</translation>
     </message>
     <message>
-        <location filename="../src/search.cpp" line="184"/>
+        <location filename="../src/search.cpp" line="193"/>
         <source>命令无效或不存在</source>
         <translation>命令无效或不存在</translation>
     </message>
@@ -95,7 +95,7 @@
 <context>
     <name>displayRecentMark</name>
     <message>
-        <location filename="../src/pk.cpp" line="369"/>
+        <location filename="../src/pk.cpp" line="406"/>
         <source>最近执行</source>
         <translation>最近执行</translation>
     </message>
@@ -103,12 +103,12 @@
 <context>
     <name>parseIndex</name>
     <message>
-        <location filename="../src/pk.cpp" line="439"/>
+        <location filename="../src/pk.cpp" line="476"/>
         <source>目录:</source>
         <translation>目录:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="445"/>
+        <location filename="../src/pk.cpp" line="482"/>
         <source>请选择命令编号: </source>
         <translation>请选择命令编号: </translation>
     </message>
@@ -116,17 +116,17 @@
 <context>
     <name>processIndexSelection</name>
     <message>
-        <location filename="../src/pk.cpp" line="510"/>
+        <location filename="../src/pk.cpp" line="547"/>
         <source>无效编号!</source>
         <translation>无效编号!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="522"/>
+        <location filename="../src/pk.cpp" line="559"/>
         <source>命令无效或不存在!</source>
         <translation>命令无效或不存在!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="557"/>
+        <location filename="../src/pk.cpp" line="594"/>
         <source>配置完成</source>
         <translation>配置完成</translation>
     </message>
@@ -144,9 +144,25 @@
         <translation>命令:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="245"/>
+        <location filename="../src/pk.cpp" line="253"/>
+        <source>执行命令</source>
+        <translation>执行命令</translation>
+    </message>
+    <message>
+        <location filename="../src/pk.cpp" line="256"/>
+        <source>(录制中): </source>
+        <translation>(录制中): </translation>
+    </message>
+    <message>
+        <location filename="../src/pk.cpp" line="265"/>
+        <location filename="../src/pk.cpp" line="275"/>
         <source>执行命令: </source>
         <translation>执行命令: </translation>
+    </message>
+    <message>
+        <location filename="../src/pk.cpp" line="285"/>
+        <source>这个命令似乎被更改过,是否信任执行(Y/n): </source>
+        <translation>这个命令似乎被更改过,是否信任执行(Y/n): </translation>
     </message>
 </context>
 <context>
@@ -181,12 +197,12 @@
 <context>
     <name>runSearch</name>
     <message>
-        <location filename="../src/pk.cpp" line="572"/>
+        <location filename="../src/pk.cpp" line="608"/>
         <source>没有记录，请先添加目录和命令。</source>
         <translation>没有记录，请先添加目录和命令。</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="581"/>
+        <location filename="../src/pk.cpp" line="619"/>
         <source>未选择任何命令。</source>
         <translation>未选择任何命令。</translation>
     </message>
@@ -194,12 +210,12 @@
 <context>
     <name>selectRun</name>
     <message>
-        <location filename="../src/pk.cpp" line="293"/>
+        <location filename="../src/pk.cpp" line="330"/>
         <source>没有记录!</source>
         <translation>没有记录!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="301"/>
+        <location filename="../src/pk.cpp" line="338"/>
         <source>请输入要执行的编号: </source>
         <translation>请输入要执行的编号: </translation>
     </message>
@@ -207,7 +223,7 @@
 <context>
     <name>setRecent</name>
     <message>
-        <location filename="../src/pk.cpp" line="274"/>
+        <location filename="../src/pk.cpp" line="311"/>
         <source>请输入目标编号: </source>
         <translation>请输入目标编号: </translation>
     </message>
