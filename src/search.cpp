@@ -17,6 +17,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <QCoreApplication>
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -24,8 +25,6 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
-
-#include <QCoreApplication>
 
 #include "colors.h"
 #include "loadfile.h"
@@ -40,7 +39,8 @@ static std::string generateList(const Json::Value& config, File& file)
     for (const auto& dir : valid)
     {
         Json::Value cmds = paths[dir];
-        if (!cmds.isArray()) continue;
+        if (!cmds.isArray())
+            continue;
 
         for (Json::ArrayIndex j = 0; j < cmds.size(); ++j)
         {
@@ -60,7 +60,8 @@ static std::string generateList(const Json::Value& config, File& file)
             while (!displayCmd.empty() && displayCmd.back() == ' ')
                 displayCmd.pop_back();
 
-            oss << i << "." << (j + 1) << "\t" << dir << "\t" << displayCmd << "\n";
+            oss << i << "." << (j + 1) << "\t" << dir << "\t" << displayCmd
+                << "\n";
         }
         i++;
     }
@@ -107,7 +108,9 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
         if (fd == -1)
         {
             std::cerr << Colors::RED
-                      << QCoreApplication::translate("Searcher", "无法创建临时文件").toStdString()
+                      << QCoreApplication::translate("Searcher",
+                                                     "无法创建临时文件")
+                             .toStdString()
                       << Colors::RESET << std::endl;
             return SearchResult();
         }
@@ -122,7 +125,8 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
         {
             unlink(tmpname);
             std::cerr << Colors::RED
-                      << QCoreApplication::translate("Searcher", "无法运行 fzf").toStdString()
+                      << QCoreApplication::translate("Searcher", "无法运行 fzf")
+                             .toStdString()
                       << Colors::RESET << std::endl;
             return SearchResult();
         }
@@ -142,11 +146,14 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
     {
         // 回退：显示列表并让用户输入索引
         std::cerr << Colors::CYAN
-                  << QCoreApplication::translate("Searcher", "可用命令列表:\n").toStdString()
+                  << QCoreApplication::translate("Searcher", "可用命令列表:\n")
+                         .toStdString()
                   << Colors::RESET;
         std::cerr << list;
         std::cerr << Colors::CYAN
-                  << QCoreApplication::translate("Searcher", "请输入要执行的编号 (例如 5.1): ").toStdString()
+                  << QCoreApplication::translate(
+                         "Searcher", "请输入要执行的编号 (例如 5.1): ")
+                         .toStdString()
                   << Colors::RESET;
         std::getline(std::cin, selectedLine);
     }
@@ -158,7 +165,8 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
     if (!parseSelection(selectedLine, dirDisp, cmdDisp))
     {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("Searcher", "无效的选择格式").toStdString()
+                  << QCoreApplication::translate("Searcher", "无效的选择格式")
+                         .toStdString()
                   << Colors::RESET << std::endl;
         return SearchResult();
     }
@@ -169,7 +177,8 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
     if (dirDisp < 1 || dirDisp > static_cast<int>(validDirs.size()))
     {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("Searcher", "目录编号超出范围").toStdString()
+                  << QCoreApplication::translate("Searcher", "目录编号超出范围")
+                         .toStdString()
                   << Colors::RESET << std::endl;
         return SearchResult();
     }
@@ -181,7 +190,8 @@ SearchResult Searcher::interactiveSearch(const Json::Value& config, File& file)
     if (command.empty())
     {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("Searcher", "命令无效或不存在").toStdString()
+                  << QCoreApplication::translate("Searcher", "命令无效或不存在")
+                         .toStdString()
                   << Colors::RESET << std::endl;
         return SearchResult();
     }

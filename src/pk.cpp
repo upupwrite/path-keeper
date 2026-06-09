@@ -240,27 +240,64 @@ void PathKeeper::runCommand(const std::string &directory,
         << QCoreApplication::translate("runCommand", "命令:").toStdString()
         << Colors::RESET << " " << Colors::CYAN << command << Colors::RESET
         << std::endl;
-    std::cerr
-        << Colors::YELLOW
-        << QCoreApplication::translate("runCommand", "执行命令: ").toStdString()
-        << command << Colors::RESET << std::endl;
 
-    // 如果需要日志记录，可以在这里根据 file.isCommandLogEnabled()
-    // 决定是否记录日志 if (file.isCommandLogEnabled(directory, idx)) { ... }
-
-    int idx=file.getCommandIndex(directory,command);
-    if(file.isGlobalLogEnabled()){
-        if(file.isCommandLogEnabled(directory,idx)){
-            shell.shellCommand(command, directory,true);
+    int idx = file.getCommandIndex(directory, command);
+    if (file.verifyCommandHash(directory, idx))
+    {
+    RUN:
+        if (file.isGlobalLogEnabled())
+        {
+            if (file.isCommandLogEnabled(directory, idx))
+            {
+                std::cerr << Colors::YELLOW
+                          << QCoreApplication::translate("runCommand",
+                                                         "执行命令")
+                                 .toStdString()
+                          << QCoreApplication::translate("runCommand",
+                                                         "(录制中): ")
+                                 .toStdString()
+                          << command << Colors::RESET << std::endl;
+                shell.shellCommand(command, directory, true);
+            }
+            else
+            {
+                std::cerr << Colors::YELLOW
+                          << QCoreApplication::translate("runCommand",
+                                                         "执行命令: ")
+                                 .toStdString()
+                          << command << Colors::RESET << std::endl;
+                shell.shellCommand(command, directory);
+            }
         }
-        else {
+        else
+        {
+            std::cerr << Colors::YELLOW
+                      << QCoreApplication::translate("runCommand", "执行命令: ")
+                             .toStdString()
+                      << command << Colors::RESET << std::endl;
             shell.shellCommand(command, directory);
         }
     }
-    else {
-        shell.shellCommand(command, directory);
+    else
+    {
+        std::string select;
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate(
+                         "runCommand",
+                         "这个命令似乎被更改过,是否信任执行(Y/n): ")
+                         .toStdString()
+                  << Colors::RESET;
+        std::getline(std::cin, select);
+        if (select == "Y" || select == "y")
+        {
+            file.syncCommandHash(directory, idx);
+            goto RUN;
+        }
+        else
+        {
+            return;
+        }
     }
-
 }
 
 void PathKeeper::setRecent(const std::string &cmd_index)
@@ -562,46 +599,49 @@ void PathKeeper::processIndexSelection(const std::string &index_str,
     }
 }
 
-
-
-void PathKeeper::search(){
+void PathKeeper::search()
+{
     Json::Value config = file.loadConfig();
-        if (config.isNull() || config["path"].empty())
-        {
-            std::cerr << Colors::YELLOW
-                      << QCoreApplication::translate("runSearch", "没有记录，请先添加目录和命令。").toStdString()
-                      << Colors::RESET << std::endl;
-            return;
-        }
+    if (config.isNull() || config["path"].empty())
+    {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate(
+                         "runSearch", "没有记录，请先添加目录和命令。")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
 
-        SearchResult result = Searcher::interactiveSearch(config, file);
-        if (!result.valid)
-        {
-            std::cerr << Colors::YELLOW
-                      << QCoreApplication::translate("runSearch", "未选择任何命令。").toStdString()
-                      << Colors::RESET << std::endl;
-            return;
-        }
+    SearchResult result = Searcher::interactiveSearch(config, file);
+    if (!result.valid)
+    {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("runSearch",
+                                                 "未选择任何命令。")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
 
-        // 保存最近记录
-        int origIdx = -1;
-        for (size_t i = 0; i < file.path_keys_order.size(); ++i)
+    // 保存最近记录
+    int origIdx = -1;
+    for (size_t i = 0; i < file.path_keys_order.size(); ++i)
+    {
+        if (file.path_keys_order[i] == result.directory)
         {
-            if (file.path_keys_order[i] == result.directory)
-            {
-                origIdx = i;
-                break;
-            }
+            origIdx = i;
+            break;
         }
-        if (origIdx != -1)
-        {
-            Json::Value recent(Json::arrayValue);
-            recent.append(origIdx);
-            recent.append(result.commandIndex);
-            config["recent"] = recent;
-            file.saveConfig(config);
-        }
+    }
+    if (origIdx != -1)
+    {
+        Json::Value recent(Json::arrayValue);
+        recent.append(origIdx);
+        recent.append(result.commandIndex);
+        config["recent"] = recent;
+        file.saveConfig(config);
+    }
 
-        // 执行命令（传递目录、命令字符串和索引，以便记录日志）
-        runCommand(result.directory, result.effectiveCommand);
+    // 执行命令（传递目录、命令字符串和索引，以便记录日志）
+    runCommand(result.directory, result.effectiveCommand);
 }

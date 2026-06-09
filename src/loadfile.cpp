@@ -803,7 +803,6 @@ int File::getCommandIndex(const std::string& dir, const std::string& commandStr)
     return -1;
 }
 
-
 Editor::Editor()
     : COMMON_EDITORS({"vim", "nvim", "nano", "emacs", "micro", "helix", "code",
                       "codium", "kate", "gedit", "mousepad", "ne", "jed",

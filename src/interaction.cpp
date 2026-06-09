@@ -98,7 +98,8 @@ void Interaction::main(int argc, char **argv)
             showHelp();
             return;
         }
-        else if (option=="search"){
+        else if (option == "search")
+        {
             pk.search();
         }
         else if (option == "config")

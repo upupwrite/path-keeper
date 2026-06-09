@@ -14,10 +14,13 @@
 
 #pragma once
 #include <json/value.h>
+
 #include <string>
+
 #include "loadfile.h"
 
-struct SearchResult {
+struct SearchResult
+{
     bool valid;
     std::string directory;
     int commandIndex;
@@ -25,11 +28,14 @@ struct SearchResult {
 
     SearchResult() : valid(false), commandIndex(-1) {}
     SearchResult(const std::string& dir, int idx, const std::string& cmd)
-        : valid(true), directory(dir), commandIndex(idx), effectiveCommand(cmd) {}
+        : valid(true), directory(dir), commandIndex(idx), effectiveCommand(cmd)
+    {
+    }
 };
 
 class Searcher
 {
 public:
-    static SearchResult interactiveSearch(const Json::Value& config, File& file);
+    static SearchResult interactiveSearch(const Json::Value& config,
+                                          File& file);
 };
