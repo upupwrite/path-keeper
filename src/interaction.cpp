@@ -102,8 +102,9 @@ void Interaction::main(int argc, char **argv)
         {
             pk.search();
         }
-        else if(option=="log"){
-            shell.shellCommand("less .pk.log","~");
+        else if (option == "log")
+        {
+            shell.shellCommand("less .pk.log", "~", false, true);
         }
         else if (option == "config")
         {
@@ -156,7 +157,7 @@ void Interaction::main(int argc, char **argv)
                 {
                     std::string configCommand =
                         editor.getEditor() + " " + Achieve::CONFIG_FILE;
-                    shell.shellCommand(configCommand, "~");
+                    shell.shellCommand(configCommand, "~", false, true);
                 }
                 else
                 {

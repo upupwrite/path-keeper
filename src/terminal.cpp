@@ -41,27 +41,37 @@ Shell::Shell()
 
 // only one with std::cout
 void Shell::shellCommand(const std::string& command, const std::string& dir,
-                         const bool record)
+                         const bool record, const bool self)
 {
     std::string log_prefix = "[" + log.timestamp() + "]\n" + "DIR: " + dir +
                              "\n" + "COMMAND: " + command + "\n";
     Json::Value config = file.loadConfig();
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
-    if (record)
+    if (!self)
     {
-        std::cout << "echo " << "'" << log_prefix << "' >> " << log_file
-                  << " && "
-                  << "tmux pipe-pane 'cat >> " << log_file << "'&&" << shell
-                  << " <<EOF\n"
-                  << "cd " << dir << " && " << command << "\nEOF"
-                  << "\n"
-                  << "tmux pipe-pane" << std::endl;
+        if (record)
+        {
+            std::cout << "echo " << "'" << log_prefix << "' >> " << log_file
+                      << " && "
+                      << "tmux pipe-pane 'cat >> " << log_file << "'&&" << shell
+                      << " <<EOF\n"
+                      << "cd " << dir << " && " << command << "\nEOF"
+                      << "\n"
+                      << "tmux pipe-pane" << std::endl;
+        }
+        else
+        {
+            std::cout << "echo '" << log_prefix << "' >> " << log_file << " && "
+                      << shell << " <<EOF\n"
+                      << "cd " << dir << " && " << command << "\nEOF"
+                      << std::endl;
+        }
     }
+
     else
     {
-        std::cout << "echo '" << log_prefix << "' >> " << log_file << " && "
-                  << shell << " <<EOF\n"
+        std::cout << shell << " <<EOF\n"
                   << "cd " << dir << " && " << command << "\nEOF" << std::endl;
     }
 }
