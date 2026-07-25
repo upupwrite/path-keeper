@@ -145,3 +145,13 @@ pk.dist/
 pk.onefile-build/
 .clang-format
 CMakeLists.txt.user
+
+.codelite/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+cmake_uninstall.cmake
+path-keeper.project
+path-keeper.workspace
+ 

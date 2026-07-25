@@ -1,0 +1,244 @@
+# test_path_keeper.py
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+import pytest
+
+# 优先使用环境变量指定的 pk 路径，否则尝试自动查找
+PK_BINARY = os.environ.get("PK_BINARY", shutil.which("pk") or "pk")
+
+
+@pytest.fixture(autouse=True)
+def setup_home_and_cleanup(monkeypatch, tmp_path):
+    """
+    为每个测试用例创建临时 HOME 目录，
+    让 pk 的配置文件 .pk.json 和日志 .pk.log 存放在临时目录中。
+    测试结束后自动清理。
+    """
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    yield home
+
+
+def run_pk(*args, input_text=None, cwd=None, env=None, timeout=10):
+    """
+    辅助函数：运行 pk 并返回 CompletedProcess。
+    """
+    cmd = [PK_BINARY] + list(args)
+    merged_env = os.environ.copy()
+    if env:
+        merged_env.update(env)
+    proc = subprocess.run(
+        cmd,
+        input=input_text,
+        capture_output=True,
+        text=True,
+        cwd=cwd,
+        env=merged_env,
+        timeout=timeout,
+    )
+    return proc
+
+
+def read_config(home_path):
+    """读取 .pk.json 并返回解析后的 dict"""
+    config_file = home_path / ".pk.json"
+    if not config_file.exists():
+        return None
+    with open(config_file, "r") as f:
+        return json.load(f)
+
+
+# ================================================================
+# 测试用例
+# ================================================================
+
+
+def test_add_record(setup_home_and_cleanup):
+    """
+    测试添加一条记录：
+    输入 '.' 作为目录（应替换为当前工作目录），
+    输入 'ls -la' 作为命令，验证配置文件是否正确写入。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        input_str = ".\nls -la\n"
+        result = run_pk("-a", input_text=input_str, cwd=tmp_dir)
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+
+        config = read_config(home)
+        assert config is not None
+        paths = config.get("path", {})
+        assert tmp_dir in paths
+        cmds = paths[tmp_dir]
+        assert isinstance(cmds, list)
+        assert len(cmds) == 1
+        assert cmds[0]["cmd"] == "ls -la"
+
+
+def test_show_record(setup_home_and_cleanup):
+    """
+    测试显示记录：
+    使用 pk -a 先添加一个目录和命令，再通过 pk -s 检查输出。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # 添加记录
+        input_str = ".\necho hello\n"
+        result = run_pk("-a", input_text=input_str, cwd=tmp_dir)
+        assert result.returncode == 0
+
+        # 显示记录
+        result = run_pk("-s")
+        assert result.returncode == 0
+        stderr = result.stderr
+        assert tmp_dir in stderr
+        assert "echo hello" in stderr
+
+
+def test_execute_recent(setup_home_and_cleanup):
+    """
+    测试执行最近记录：
+    添加一个目录并包含两条命令，然后执行 -e 1.2，
+    提供 Y 确认哈希验证，验证输出中包含命令脚本，并检查 recent 字段。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # 添加两条命令到同一个目录
+        run_pk("-a", input_text=".\nmake build\n", cwd=tmp_dir)
+        run_pk("-a", input_text=".\nmake test\n", cwd=tmp_dir)
+
+        # 执行索引 1.2，并提供信任输入 Y
+        result = run_pk("-e", "1.2", input_text="Y\n")
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        stdout = result.stdout
+        # 输出应包含 cd <tmp_dir> && make test
+        assert "cd " + tmp_dir in stdout
+        assert "make test" in stdout
+
+        # 验证 recent 记录被更新
+        new_config = read_config(home)
+        recent = new_config["recent"]
+        assert recent is not None
+        # 只添加了一个目录，所以目录索引为0；第二个命令索引为1
+        assert recent[0] == 0
+        assert recent[1] == 1
+
+
+def test_point_execution_no_recent(setup_home_and_cleanup):
+    """
+    测试点执行（-p）：执行命令但不更新 recent。
+    需要提供 Y 确认哈希验证。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # 添加一条命令
+        run_pk("-a", input_text=".\nls -l\n", cwd=tmp_dir)
+
+        # 先通过 -c 设置一个 recent 记录作为基准
+        run_pk("-c", input_text="1.1\n")
+
+        config_before = read_config(home)
+        recent_before = config_before["recent"]
+        assert recent_before is not None
+
+        # 执行 -p 1.1，提供信任输入
+        result = run_pk("-p", "1.1", input_text="Y\n")
+        assert result.returncode == 0
+        # 输出应包含 ls -l
+        assert "ls -l" in result.stdout
+
+        # recent 不应被修改
+        config_after = read_config(home)
+        assert config_after["recent"] == recent_before
+
+
+def test_set_recent(setup_home_and_cleanup):
+    """
+    测试设置最近记录（-c）：
+    添加两个不同目录的命令，通过 -c 选择第二个目录，
+    然后无参数运行 pk 验证执行的是第二个目录的命令。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        # 添加两个不同目录的命令
+        run_pk("-a", input_text=".\ncmdA\n", cwd=dir1)
+        run_pk("-a", input_text=".\ncmdB\n", cwd=dir2)
+
+        # 设置 recent 为 2.1 （即 dir2 的 cmdB）
+        result = run_pk("-c", input_text="2.1\n")
+        assert result.returncode == 0
+
+        # 无参数运行，应执行 dir2 的 cmdB，需确认哈希
+        result = run_pk(input_text="Y\n")
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        stdout = result.stdout
+        # 输出应包含 dir2 和 cmdB
+        assert "cd " + dir2 in stdout
+        assert "cmdB" in stdout
+        # 不应包含 dir1 的 cmdA
+        assert "cmdA" not in stdout
+
+
+def test_version(setup_home_and_cleanup):
+    """测试版本输出"""
+    result = run_pk("-v")
+    assert result.returncode == 0
+    assert "path-keeper" in result.stderr
+
+    result_verbose = run_pk("--version-verbose")
+    assert result_verbose.returncode == 0
+    assert "Build date" in result_verbose.stderr
+
+
+def test_help(setup_home_and_cleanup):
+    """测试帮助输出"""
+    result = run_pk("-h")
+    assert result.returncode == 0
+    stderr = result.stderr
+    assert "--add" in stderr
+    assert "--execute" in stderr
+
+
+def test_no_args_runs_recent(setup_home_and_cleanup):
+    """
+    无参数调用时，应尝试执行最近记录。
+    若没有最近记录，应输出提示信息。
+    """
+    result = run_pk()
+    assert result.returncode == 0
+    assert "没有最近记录" in result.stderr
+
+
+def test_search_fallback(setup_home_and_cleanup):
+    """
+    测试搜索功能（在没有 fzf 的环境下会退化为列表选择）。
+    提供选择和信任输入，验证输出命令并更新 recent。
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        run_pk("-a", input_text=".\ncmd1\n", cwd=dir1)
+        run_pk("-a", input_text=".\ncmd2\n", cwd=dir2)
+
+        # 设置 PATH 为空，使 fzf 不可用；pk 本身使用绝对路径执行
+        env_override = {"PATH": ""}
+        # 输入选择 "2.1"，然后信任确认 "Y"
+        result = run_pk("search", input_text="2.1\nY\n", env=env_override)
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        stdout = result.stdout
+        # 输出应包含 cmd2 的执行脚本
+        assert "cmd2" in stdout
+
+        # 验证 recent 被更新（至少不是 None）
+        config = read_config(home)
+        assert config["recent"] is not None
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])
