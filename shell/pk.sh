@@ -30,13 +30,23 @@ pk() {
     case "${1:-}" in
         -e|""|search|log)
             local cmd_output
+            local ret
+            # 捕获标准输出和退出码（标准错误直接透传）
             cmd_output=$(_pk_binary "$@")
-            if [ $? -eq 0 ] && [ -n "$cmd_output" ]; then
-                echo "$cmd_output"
+            ret=$?
+            if [ $ret -eq 0 ] && [ -n "$cmd_output" ]; then
+                # 若希望先显示原命令，取消下行注释
+                printf '%s\n' "$cmd_output" >&2   # 输出到 stderr 避免干扰管道
                 eval "$cmd_output"
+                ret=$?   # 取 eval 的退出码
             else
-                echo "$cmd_output"
+                # 若出错但有输出（如错误信息来自 stdout，但通常错误走 stderr），则打印
+                if [ -n "$cmd_output" ]; then
+                    printf '%s\n' "$cmd_output"
+                fi
+                # ret 保留 _pk_binary 的退出码
             fi
+            return $ret
             ;;
         *)
             _pk_binary "$@"

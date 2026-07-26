@@ -294,7 +294,7 @@ Json::Value File::loadConfig()
         if (!config.isMember("recent"))
             config["recent"] = Json::nullValue;
         if (!config.isMember("shell"))
-            config["shell"] = "sh";
+            config["shell"] = "NONE";
         if (!config.isMember("editor"))
             config["editor"] = "";
         if (!config.isMember("global_log"))

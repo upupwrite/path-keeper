@@ -9,8 +9,33 @@ from pathlib import Path
 
 import pytest
 
-# 优先使用环境变量指定的 pk 路径，否则尝试自动查找
-PK_BINARY = os.environ.get("PK_BINARY", shutil.which("pk") or "pk")
+
+def locate_pk():
+    """自动寻找 pk 可执行文件"""
+    # 1. 优先使用环境变量
+    env_pk = os.environ.get("PK_BINARY")
+    if env_pk and os.path.exists(env_pk):
+        return env_pk
+
+    # 2. 尝试在当前文件所在路径的父目录下寻找（适用于源码与构建目录并列的场景）
+    script_dir = Path(__file__).resolve().parent
+    candidates = [
+        script_dir / ".." / "build" / "pk",
+        script_dir / ".." / "cmake-build-debug" / "pk",
+        script_dir / ".." / "cmake-build-release" / "pk",
+        script_dir / "pk",
+        Path.cwd() / "pk",
+    ]
+    for cand in candidates:
+        if cand.exists():
+            return str(cand)
+
+    # 3. 降级为 shutil.which("pk") 或默认 "pk"
+    which_pk = shutil.which("pk")
+    return which_pk if which_pk else "pk"
+
+
+PK_BINARY = os.environ.get("PK_BINARY", locate_pk())
 
 
 @pytest.fixture(autouse=True)
@@ -238,6 +263,17 @@ def test_search_fallback(setup_home_and_cleanup):
         # 验证 recent 被更新（至少不是 None）
         config = read_config(home)
         assert config["recent"] is not None
+
+
+def test_execute(setup_home_and_cleanup):
+    """
+    测试执行:
+    添加一个目录包含一个命令,检验std::out是否符合预期
+    """
+    home = setup_home_and_cleanup
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        board = run_pk("-s")
+        print(board)
 
 
 if __name__ == "__main__":

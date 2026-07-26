@@ -119,19 +119,21 @@ target_compile_options(pk PRIVATE
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
 )
 
-# 选项：是否构建测试（默认关闭）
 option(BUILD_TESTS "Build the tests" OFF)
 if(BUILD_TESTS)
+    message(STATUS "Building tests: ENABLED")
     enable_testing()
-
-    add_executable(test_find_editor
-        ./test/test_findInPath.cpp
-        ./src/loadfile.cpp
-        ./include/loadfile.h
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    add_test(
+        NAME pk_tests
+        COMMAND ${Python3_EXECUTABLE} -m pytest -s -v ${CMAKE_CURRENT_SOURCE_DIR}/test/test.py
     )
-    target_include_directories(test_find_editor PRIVATE ${JSONCPP_INCLUDE_DIRS})
-    target_link_libraries(test_find_editor ${JSONCPP_LIBRARIES} pthread)
-    add_test(NAME FindNanoTest COMMAND test_find_editor)
+    set_tests_properties(pk_tests PROPERTIES
+        ENVIRONMENT "PK_BINARY=$<TARGET_FILE:pk>;PYTHONUNBUFFERED=1"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+else()
+    message(STATUS "Building tests: DISABLED")
 endif()
 
 # 安装可执行文件到系统 bin 目录

@@ -48,30 +48,34 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
     Json::Value config = file.loadConfig();
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
-    if (!self)
+    std::string shell_command;
+    if (shell=="NONE"){
+        shell_command= "cd " + dir + " && "+ command;
+    }
+    else{
+        shell_command= shell + " <<EOF\n"+"cd " + dir + " && " + command +"\nEOF";
+    }
+    if (!self && !std::empty(shell_command))
     {
         if (record)
         {
             std::cout << "echo " << "'" << log_prefix << "' >> " << log_file
                       << " && "
-                      << "tmux pipe-pane 'cat >> " << log_file << "'&&" << shell
-                      << " <<EOF\n"
-                      << "cd " << dir << " && " << command << "\nEOF"
+                      << "tmux pipe-pane 'cat >> " << log_file << "'&&"
+                      << shell_command
                       << "\n"
                       << "tmux pipe-pane" << std::endl;
         }
         else
         {
             std::cout << "echo '" << log_prefix << "' >> " << log_file << " && "
-                      << shell << " <<EOF\n"
-                      << "cd " << dir << " && " << command << "\nEOF"
+                      <<shell_command
                       << std::endl;
         }
     }
 
     else
     {
-        std::cout << shell << " <<EOF\n"
-                  << "cd " << dir << " && " << command << "\nEOF" << std::endl;
+        std::cout << shell_command<< std::endl;
     }
 }
