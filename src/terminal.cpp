@@ -49,11 +49,14 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
     std::string shell_command;
-    if (shell=="NONE"){
-        shell_command= "cd " + dir + " && "+ command;
+    if (shell == "NONE")
+    {
+        shell_command = "cd " + dir + " && " + command;
     }
-    else{
-        shell_command= shell + " <<EOF\n"+"cd " + dir + " && " + command +"\nEOF";
+    else
+    {
+        shell_command =
+            shell + " <<EOF\n" + "cd " + dir + " && " + command + "\nEOF";
     }
     if (!self && !std::empty(shell_command))
     {
@@ -62,20 +65,18 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
             std::cout << "echo " << "'" << log_prefix << "' >> " << log_file
                       << " && "
                       << "tmux pipe-pane 'cat >> " << log_file << "'&&"
-                      << shell_command
-                      << "\n"
+                      << shell_command << "\n"
                       << "tmux pipe-pane" << std::endl;
         }
         else
         {
             std::cout << "echo '" << log_prefix << "' >> " << log_file << " && "
-                      <<shell_command
-                      << std::endl;
+                      << shell_command << std::endl;
         }
     }
 
     else
     {
-        std::cout << shell_command<< std::endl;
+        std::cout << shell_command << std::endl;
     }
 }

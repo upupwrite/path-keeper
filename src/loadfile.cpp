@@ -647,6 +647,15 @@ std::string File::getEffectiveCommand(const std::string& dir, int cmdIndex)
     return "";
 }
 
+std::string File::computeHash(const std::string& text)
+{
+    /*text: dir info and command*/
+    std::size_t h = std::hash<std::string>{}(text);
+    std::stringstream ss;
+    ss << std::hex << std::setw(sizeof(h) * 2) << std::setfill('0') << h;
+    return ss.str();
+}
+
 // 计算命令的哈希值（基于 cmd 字段）
 std::string File::computeCommandHash(const std::string& dir, int cmdIndex)
 {
@@ -669,10 +678,8 @@ std::string File::computeCommandHash(const std::string& dir, int cmdIndex)
     {
         return "";
     }
-    std::size_t h = std::hash<std::string>{}(cmdStr);
-    std::stringstream ss;
-    ss << std::hex << std::setw(sizeof(h) * 2) << std::setfill('0') << h;
-    return ss.str();
+    auto cmdFullStr = dir + cmdStr;
+    return computeHash(cmdFullStr);
 }
 
 // 获取存储的命令哈希值

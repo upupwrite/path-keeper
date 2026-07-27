@@ -108,29 +108,24 @@ public:
     void setGlobalLogEnabled(bool enabled);
 
     // ========== 新增：命令级日志（去掉了 const） ==========
-    bool isCommandLogEnabled(const std::string& dir,
-                             int cmdIndex);  // 原 const 去掉
+    bool isCommandLogEnabled(const std::string& dir, int cmdIndex);
     void setCommandLogEnabled(const std::string& dir, int cmdIndex,
                               bool enabled);
 
     // ========== 新增：命令别名管理（去掉了 const） ==========
-    std::string getCommandAlias(const std::string& dir,
-                                int cmdIndex);  // 原 const 去掉
+    std::string getCommandAlias(const std::string& dir, int cmdIndex);
     void setCommandAlias(const std::string& dir, int cmdIndex,
                          const std::string& alias);
-    std::string getEffectiveCommand(const std::string& dir,
-                                    int cmdIndex);  // 原 const 去掉
+    std::string getEffectiveCommand(const std::string& dir, int cmdIndex);
 
     // ========== 新增：命令哈希管理（去掉了 const） ==========
-    std::string computeCommandHash(const std::string& dir,
-                                   int cmdIndex);  // 原 const 去掉
-    std::string getCommandHash(const std::string& dir,
-                               int cmdIndex);  // 原 const 去掉
+    std::string computeHash(const std::string& text);
+    std::string computeCommandHash(const std::string& dir, int cmdIndex);
+    std::string getCommandHash(const std::string& dir, int cmdIndex);
     void setCommandHash(const std::string& dir, int cmdIndex,
                         const std::string& hash);
-    bool verifyCommandHash(const std::string& dir,
-                           int cmdIndex);  // 原 const 去掉
-    bool verifyAllCommandsHash();          // 原 const 去掉
+    bool verifyCommandHash(const std::string& dir, int cmdIndex);
+    bool verifyAllCommandsHash();
     void syncCommandHash(const std::string& dir, int cmdIndex);
     void syncAllCommandsHash();
     int getCommandIndex(const std::string& dir, const std::string& commandStr);

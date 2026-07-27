@@ -97,20 +97,18 @@ void PathKeeper::addRecord()
         // 存储为对象格式
         Json::Value newCmd;
         newCmd["cmd"] = default_command;
+        newCmd["hash"] = file.computeHash(directory + cmd);
         commands.append(newCmd);
     }
     else if (!cmd.empty())
     {
         Json::Value newCmd;
         newCmd["cmd"] = cmd;
+        newCmd["hash"] = file.computeHash(directory + cmd);
         commands.append(newCmd);
     }
 
     config["path"][directory] = commands;
-    if (!config.isMember("shell") || config["shell"].isNull())
-    {
-        config["shell"] = "sh";
-    }
 
     file.saveConfig(config);
     std::cerr

@@ -102,6 +102,7 @@ def test_add_record(setup_home_and_cleanup):
         assert tmp_dir in paths
         cmds = paths[tmp_dir]
         assert isinstance(cmds, list)
+        print(cmds)
         assert len(cmds) == 1
         assert cmds[0]["cmd"] == "ls -la"
 
@@ -139,7 +140,9 @@ def test_execute_recent(setup_home_and_cleanup):
         run_pk("-a", input_text=".\nmake test\n", cwd=tmp_dir)
 
         # 执行索引 1.2，并提供信任输入 Y
-        result = run_pk("-e", "1.2", input_text="Y\n")
+        result = run_pk("-e", "1.2")
+        print(run_pk("-s").stderr)
+        print(result.stderr)
         assert result.returncode == 0, f"stderr: {result.stderr}"
         stdout = result.stdout
         # 输出应包含 cd <tmp_dir> && make test
@@ -271,13 +274,11 @@ def test_execute(setup_home_and_cleanup):
     """
     with tempfile.TemporaryDirectory() as dir1:
         board = run_pk("-s")
-        print(board.stderr)
         assert "没有记录" in board.stderr
         run_pk("-a", input_text=f"{dir1}\nls\n")
         oneline = run_pk("-s")
         assert "ls" in oneline.stderr
         assert dir1 in oneline.stderr
-        print(oneline.stderr)
 
         pk_command_return = run_pk("-e", input_text="1.1\n")
         assert len(pk_command_return.stdout) != 0
