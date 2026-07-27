@@ -3,7 +3,6 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
@@ -270,10 +269,18 @@ def test_execute(setup_home_and_cleanup):
     测试执行:
     添加一个目录包含一个命令,检验std::out是否符合预期
     """
-    home = setup_home_and_cleanup
-    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+    with tempfile.TemporaryDirectory() as dir1:
         board = run_pk("-s")
-        print(board)
+        print(board.stderr)
+        assert "没有记录" in board.stderr
+        run_pk("-a", input_text=f"{dir1}\nls\n")
+        oneline = run_pk("-s")
+        assert "ls" in oneline.stderr
+        assert dir1 in oneline.stderr
+        print(oneline.stderr)
+
+        pk_command_return = run_pk("-e", input_text="1.1\n")
+        assert len(pk_command_return.stdout) != 0
 
 
 if __name__ == "__main__":
