@@ -24,6 +24,21 @@
 //               << std::endl;
 // }
 
+std::string shell_escape(const std::string& s) {
+    std::string escaped;
+    escaped.push_back('\'');
+    for (char c : s) {
+        if (c == '\'') {
+            escaped.append("'\\''");
+        } else {
+            escaped.push_back(c);
+        }
+    }
+    escaped.push_back('\'');
+    return escaped;
+}
+
+
 Shell::Shell()
 {
     char buffer[1024];
@@ -52,6 +67,9 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
     if (!self)
     {
         std::string shell_command;
+        std::string safe_prefix = shell_escape(log_prefix);
+        std::string safe_file   = shell_escape(log_file);
+        std::string safe_cmd    = shell_escape(shell_command);
         if (std::empty(shell))
         {
             shell_command = "cd " + dir + " && " + command;
@@ -63,18 +81,15 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
         }
 
         try {
-            if (record)
-            {
-                std::cout << "sed -i '1i" << log_prefix << "' " << log_file
+            if (record){
+                std::cout << "sed -i '1i " << safe_prefix << "' " << safe_file
                           << " && "
-                          << "tmux pipe-pane 'cat >> " << log_file << "' && "
-                          << shell_command << " && "
+                          << "tmux pipe-pane 'cat >> " << safe_file << "' && "
+                          << safe_cmd << " && "
                           << "tmux pipe-pane" << std::endl;
-            }
-            else
-            {
-                std::cout << "sed -i '1i" << log_prefix << "' " << log_file
-                          << " && " << shell_command << std::endl;
+            } else {
+                std::cout << "sed -i '1i " << safe_prefix << "' " << safe_file
+                          << " && " << safe_cmd << std::endl;
             }
         } catch (const std::exception &e) {
             std::cerr<<"ERRO: "<<e.what()<<std::endl;

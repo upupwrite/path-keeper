@@ -2,7 +2,6 @@ import json
 import os
 import shutil
 import subprocess
-from sys import flags
 import tempfile
 from pathlib import Path
 
@@ -306,7 +305,7 @@ def test_log(setup_home_and_cleanup):
             text=True,
             check=False,
         )
-        assert "Done" in log_enable_result.stderr
+        assert "配置完成" in log_enable_result.stderr
         log_enable_global = subprocess.run(
             ["pk", "log", "--enable", "global"],
             capture_output=True,
@@ -319,10 +318,7 @@ def test_log(setup_home_and_cleanup):
         assert "global" in file_global_setting
         subprocess.run(["pk", "log", "--disable"], input="1.2\n", check=False)
         file_disable_setting = read_config(setup_home_and_cleanup)
-        assert (
-            "false"
-            in file_disable_setting["path"]["/home/kemil/Desktop/Scan"][1]["log"]
-        )
+        assert "false" in file_disable_setting["path"][dir2][1]["log"]
 
 
 def test_config(setup_home_and_cleanup):

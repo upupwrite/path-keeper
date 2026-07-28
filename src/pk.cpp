@@ -586,6 +586,9 @@ void PathKeeper::processIndexSelection(const std::string &index_str,
         {
             saveRecentRecord(config, directory, cmd_idx);
         }
+//        if (set_log){
+//            file.setCommandLogEnabled();
+//        }
 
         int orig_idx = -1;
         for (size_t i = 0; i < file.path_keys_order.size(); i++)

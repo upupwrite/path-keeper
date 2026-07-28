@@ -104,11 +104,17 @@ void Interaction::main(int argc, char **argv)
         }
         else if (option == "log")
         {
-            if (argc < 2)
+            if (argc > 2)
             {
-                shell.shellCommand("less .pk.log", "~", false, true);
+                if(std::strcmp(argv[2],"--enable")==0){
+
+                }
             }
             //            else if (argc)
+            else{
+                shell.shellCommand("less .pk.log", "~", false, true);
+
+            }
         }
         else if (option == "config")
         {

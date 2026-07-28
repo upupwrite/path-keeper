@@ -103,22 +103,22 @@ public:
     int get_display_number_by_directory_index(int orig_index,
                                               const Json::Value& paths);
 
-    // ========== 新增：全局日志开关（去掉了 const） ==========
-    bool isGlobalLogEnabled();  // 原为 const，现去掉
+    // ========== 新增：全局日志开关 ==========
+    bool isGlobalLogEnabled();
     void setGlobalLogEnabled(bool enabled);
 
-    // ========== 新增：命令级日志（去掉了 const） ==========
+    // ========== 新增：命令级日志 ==========
     bool isCommandLogEnabled(const std::string& dir, int cmdIndex);
     void setCommandLogEnabled(const std::string& dir, int cmdIndex,
                               bool enabled);
 
-    // ========== 新增：命令别名管理（去掉了 const） ==========
+    // ========== 新增：命令别名管理 ==========
     std::string getCommandAlias(const std::string& dir, int cmdIndex);
     void setCommandAlias(const std::string& dir, int cmdIndex,
                          const std::string& alias);
     std::string getEffectiveCommand(const std::string& dir, int cmdIndex);
 
-    // ========== 新增：命令哈希管理（去掉了 const） ==========
+    // ========== 新增：命令哈希管理 ==========
     std::string computeHash(const std::string& text);
     std::string computeCommandHash(const std::string& dir, int cmdIndex);
     std::string getCommandHash(const std::string& dir, int cmdIndex);
