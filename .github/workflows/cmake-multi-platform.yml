@@ -38,8 +38,8 @@ jobs:
         sudo apt-get install -y \
           libjsoncpp-dev \
           libreadline-dev \
-          qtbase5-dev \
-          qttools5-dev-tools \
+          qtbase6-dev \
+          qttools6-dev-tools \
           pkg-config \
           python3-pytest \
 
