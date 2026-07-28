@@ -24,7 +24,42 @@
 #include "json/value.h"
 #include "readline.h"
 #include "search.h"
+#include <filesystem>
+#include <cstdlib>  // getenv
+namespace fs = std::filesystem;
 
+// 归一化路径：展开 ~，转为绝对路径，去除尾部斜杠
+static std::string normalizePath(const std::string& input, const std::string& cwd)
+{
+    std::string path = input;
+    // 展开 ~
+    if (!path.empty() && path[0] == '~') {
+        const char* home = getenv("HOME");
+        if (home) {
+            path = std::string(home) + path.substr(1);
+        }
+    }
+    // 构建绝对路径
+    fs::path absPath;
+    if (path.empty() || path[0] != '/') {
+        absPath = fs::path(cwd) / path;
+    } else {
+        absPath = fs::path(path);
+    }
+    // 规范化（解析 . 和 ..，不要求路径存在）
+    try {
+        fs::path canonical = fs::weakly_canonical(absPath);
+        std::string result = canonical.string();
+        // 移除尾部斜杠（根目录除外）
+        while (result.size() > 1 && result.back() == '/') {
+            result.pop_back();
+        }
+        return result;
+    } catch (...) {
+        // 若规范化失败，返回原始输入（尽力而为）
+        return path;
+    }
+}
 PathKeeper::PathKeeper()
 {
     // Get current working directory
@@ -44,10 +79,8 @@ PathKeeper::PathKeeper()
 void PathKeeper::addRecord()
 {
     Json::Value config = file.loadConfig();
-    // 初始化 readline（只需调用一次，建议放在程序启动时）
     static bool initialized = false;
-    if (!initialized)
-    {
+    if (!initialized) {
         ReadlineHelper::initialize();
         initialized = true;
     }
@@ -58,8 +91,7 @@ void PathKeeper::addRecord()
             .toStdString() +
         Colors::RESET);
 
-    if (directory.empty())
-    {
+    if (directory.empty()) {
         std::cerr << Colors::YELLOW
                   << QCoreApplication::translate("addRecord", "目录不能为空!")
                          .toStdString()
@@ -67,41 +99,32 @@ void PathKeeper::addRecord()
         return;
     }
 
-    if (directory == ".")
-    {
-        directory = cwd;
-    }
+    // 归一化为绝对路径（统一格式）
+    directory = normalizePath(directory, cwd);
 
-    // 检查目录是否已存在
+    // 检查配置中是否已有该目录
     Json::Value commands = Json::arrayValue;
-
-    if (fs::exists(directory) && fs::is_directory(directory))
-    {
+    if (config["path"].isMember(directory)) {
         std::cerr << Colors::GREEN << directory << Colors::RESET << std::endl;
         commands = config["path"][directory];
         displayCommands(commands);
     }
 
-    // Use readline to read commands (with completion)
     std::string cmd = ReadlineHelper::read_line(
         Colors::CYAN +
         QCoreApplication::translate("addRecord", "请输入命令:").toStdString() +
         Colors::RESET);
 
-    if (cmd.empty() && commands.empty())
-    {
+    if (cmd.empty() && commands.empty()) {
         std::string default_command = "ls -l";
         std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ")
                          .toStdString()
                   << default_command << std::endl;
-        // 存储为对象格式
         Json::Value newCmd;
         newCmd["cmd"] = default_command;
-        newCmd["hash"] = file.computeHash(directory + cmd);
+        newCmd["hash"] = file.computeHash(directory + default_command);
         commands.append(newCmd);
-    }
-    else if (!cmd.empty())
-    {
+    } else if (!cmd.empty()) {
         Json::Value newCmd;
         newCmd["cmd"] = cmd;
         newCmd["hash"] = file.computeHash(directory + cmd);
@@ -109,8 +132,8 @@ void PathKeeper::addRecord()
     }
 
     config["path"][directory] = commands;
-
     file.saveConfig(config);
+
     std::cerr
         << Colors::GREEN
         << QCoreApplication::translate("addRecord", "记录已保存!").toStdString()
