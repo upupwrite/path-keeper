@@ -9,17 +9,17 @@
         <translation>Current directory:</translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="168"/>
+        <location filename="../src/interaction.cpp" line="172"/>
         <source>未知选项: </source>
         <translation>Unknown option: </translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="172"/>
+        <location filename="../src/interaction.cpp" line="176"/>
         <source>用法</source>
         <translation>Usage</translation>
     </message>
     <message>
-        <location filename="../src/interaction.cpp" line="183"/>
+        <location filename="../src/interaction.cpp" line="187"/>
         <source>错误: </source>
         <translation>Error: </translation>
     </message>
@@ -86,7 +86,7 @@
         <translation>Use the default command: </translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="118"/>
+        <location filename="../src/pk.cpp" line="116"/>
         <source>记录已保存!</source>
         <translation>Record saved!</translation>
     </message>
@@ -94,7 +94,7 @@
 <context>
     <name>displayRecentMark</name>
     <message>
-        <location filename="../src/pk.cpp" line="406"/>
+        <location filename="../src/pk.cpp" line="411"/>
         <source>最近执行</source>
         <translation>Recently executed</translation>
     </message>
@@ -102,12 +102,12 @@
 <context>
     <name>parseIndex</name>
     <message>
-        <location filename="../src/pk.cpp" line="476"/>
+        <location filename="../src/pk.cpp" line="481"/>
         <source>目录:</source>
         <translation>Directory:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="482"/>
+        <location filename="../src/pk.cpp" line="487"/>
         <source>请选择命令编号: </source>
         <translation>Please select the command number: </translation>
     </message>
@@ -115,17 +115,17 @@
 <context>
     <name>processIndexSelection</name>
     <message>
-        <location filename="../src/pk.cpp" line="547"/>
+        <location filename="../src/pk.cpp" line="552"/>
         <source>无效编号!</source>
         <translation>Invalid number!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="559"/>
+        <location filename="../src/pk.cpp" line="564"/>
         <source>命令无效或不存在!</source>
         <translation>The command is invalid or does not exist!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="594"/>
+        <location filename="../src/pk.cpp" line="599"/>
         <source>配置完成</source>
         <translation>Configuration complete</translation>
     </message>
@@ -133,33 +133,38 @@
 <context>
     <name>runCommand</name>
     <message>
-        <location filename="../src/pk.cpp" line="236"/>
+        <location filename="../src/pk.cpp" line="234"/>
         <source>目录:</source>
         <translation>Directory:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="240"/>
+        <location filename="../src/pk.cpp" line="238"/>
         <source>命令:</source>
         <translation>Command:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="253"/>
+        <location filename="../src/pk.cpp" line="244"/>
+        <source>目标目录不存在!</source>
+        <translation type="unfinished">Target dir is not exist!</translation>
+    </message>
+    <message>
+        <location filename="../src/pk.cpp" line="258"/>
         <source>执行命令</source>
         <translation>Execute command:</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="256"/>
+        <location filename="../src/pk.cpp" line="261"/>
         <source>(录制中): </source>
         <translation>(Record): </translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="265"/>
-        <location filename="../src/pk.cpp" line="275"/>
+        <location filename="../src/pk.cpp" line="270"/>
+        <location filename="../src/pk.cpp" line="280"/>
         <source>执行命令: </source>
         <translation>Execute command: </translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="285"/>
+        <location filename="../src/pk.cpp" line="290"/>
         <source>这个命令似乎被更改过,是否信任执行(Y/n): </source>
         <translation>This command seems to have been modified, do you trust executing it (Y/n): </translation>
     </message>
@@ -167,28 +172,28 @@
 <context>
     <name>runRecent</name>
     <message>
-        <location filename="../src/pk.cpp" line="129"/>
+        <location filename="../src/pk.cpp" line="127"/>
         <source>没有最近记录!</source>
         <translation>No recent records!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="138"/>
+        <location filename="../src/pk.cpp" line="136"/>
         <source>最近记录格式无效!</source>
         <translation>The recent record format is invalid!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="156"/>
-        <location filename="../src/pk.cpp" line="190"/>
+        <location filename="../src/pk.cpp" line="154"/>
+        <location filename="../src/pk.cpp" line="188"/>
         <source>最近记录无效!</source>
         <translation>The recent record is invalid!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="167"/>
+        <location filename="../src/pk.cpp" line="165"/>
         <source>最近记录对应的目录已不存在!</source>
         <translation>The directory for the recent records no longer exists!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="179"/>
+        <location filename="../src/pk.cpp" line="177"/>
         <source>命令无效!</source>
         <translation>The command is invalid!</translation>
     </message>
@@ -196,12 +201,12 @@
 <context>
     <name>runSearch</name>
     <message>
-        <location filename="../src/pk.cpp" line="608"/>
+        <location filename="../src/pk.cpp" line="613"/>
         <source>没有记录，请先添加目录和命令。</source>
         <translation>No records, please add a directory and commands first.</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="619"/>
+        <location filename="../src/pk.cpp" line="624"/>
         <source>未选择任何命令。</source>
         <translation>No command selected.</translation>
     </message>
@@ -209,12 +214,12 @@
 <context>
     <name>selectRun</name>
     <message>
-        <location filename="../src/pk.cpp" line="330"/>
+        <location filename="../src/pk.cpp" line="335"/>
         <source>没有记录!</source>
         <translation>No record!</translation>
     </message>
     <message>
-        <location filename="../src/pk.cpp" line="338"/>
+        <location filename="../src/pk.cpp" line="343"/>
         <source>请输入要执行的编号: </source>
         <translation>Please enter the index to execute: </translation>
     </message>
@@ -222,7 +227,7 @@
 <context>
     <name>setRecent</name>
     <message>
-        <location filename="../src/pk.cpp" line="311"/>
+        <location filename="../src/pk.cpp" line="316"/>
         <source>请输入目标编号: </source>
         <translation>Please enter the target number: </translation>
     </message>
@@ -230,7 +235,7 @@
 <context>
     <name>showRecord</name>
     <message>
-        <location filename="../src/pk.cpp" line="203"/>
+        <location filename="../src/pk.cpp" line="201"/>
         <source>没有记录!</source>
         <translation>No records!</translation>
     </message>
