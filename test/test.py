@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import subprocess
+from sys import flags
 import tempfile
 from pathlib import Path
 
@@ -111,7 +112,6 @@ def test_show_record(setup_home_and_cleanup):
     测试显示记录：
     使用 pk -a 先添加一个目录和命令，再通过 pk -s 检查输出。
     """
-    home = setup_home_and_cleanup
     with tempfile.TemporaryDirectory() as tmp_dir:
         # 添加记录
         input_str = ".\necho hello\n"
@@ -194,7 +194,6 @@ def test_set_recent(setup_home_and_cleanup):
     添加两个不同目录的命令，通过 -c 选择第二个目录，
     然后无参数运行 pk 验证执行的是第二个目录的命令。
     """
-    home = setup_home_and_cleanup
     with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
         # 添加两个不同目录的命令
         run_pk("-a", input_text=".\ncmdA\n", cwd=dir1)
@@ -291,3 +290,47 @@ def test_execute(setup_home_and_cleanup):
         print(pk_command_return.stdout)
         jsonfile = read_config(home)
         print(jsonfile)
+
+
+def test_log(setup_home_and_cleanup):
+    """
+    测试log是否符合格式:
+    添加两个命令并执行需要log,验证pk_log文件
+    """
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        run_pk("-a", input_text=".\ncmd1\n", cwd=dir1)
+        run_pk("-a", input_text=".\ncmd2\n", cwd=dir2)
+        log_enable_result = subprocess.run(
+            ["pk", "log", "--enable", "1.1"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert "Done" in log_enable_result.stderr
+        log_enable_global = subprocess.run(
+            ["pk", "log", "--enable", "global"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert "Enabled" in log_enable_global.stderr
+        file_global_setting = read_config(setup_home_and_cleanup)
+        assert "True" in file_global_setting
+        assert "global" in file_global_setting
+        subprocess.run(["pk", "log", "--disable"], input="1.2\n", check=False)
+        file_disable_setting = read_config(setup_home_and_cleanup)
+        assert (
+            "false"
+            in file_disable_setting["path"]["/home/kemil/Desktop/Scan"][1]["log"]
+        )
+
+
+def test_config(setup_home_and_cleanup):
+    config_result = subprocess.run(
+        ["pk", "config", "-editor", "vim"], capture_output=True, text=True, check=False
+    )
+    print(config_result.stderr)
+    assert "Selected editor" in config_result.stderr
+    result = run_pk("config")
+    print(result.stdout)
+    assert "vim" in result.stdout
