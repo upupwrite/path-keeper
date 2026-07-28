@@ -36,7 +36,7 @@ pk() {
             ret=$?
             if [ $ret -eq 0 ] && [ -n "$cmd_output" ]; then
                 # 若希望先显示原命令，取消下行注释
-                printf '%s\n' "$cmd_output" >&2   # 输出到 stderr 避免干扰管道
+                # printf '%s\n' "$cmd_output" >&2   # 输出到 stderr 避免干扰管道
                 eval "$cmd_output"
                 ret=$?   # 取 eval 的退出码
             else

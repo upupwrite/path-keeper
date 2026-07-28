@@ -239,10 +239,13 @@ void PathKeeper::runCommand(const std::string &directory,
         << Colors::RESET << " " << Colors::CYAN << command << Colors::RESET
         << std::endl;
 
-    if (access(directory.c_str(), F_OK) != 0){
-        std::cerr<<Colors::RED
-                <<QCoreApplication::translate("runCommand","目标目录不存在!").toStdString()
-                <<Colors::RESET<<std::endl;
+    if (access(directory.c_str(), F_OK) != 0)
+    {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("runCommand",
+                                                 "目标目录不存在!")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
         return;
     }
 
