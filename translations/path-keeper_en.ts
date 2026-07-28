@@ -145,7 +145,7 @@
     <message>
         <location filename="../src/pk.cpp" line="244"/>
         <source>目标目录不存在!</source>
-        <translation type="unfinished">Target dir is not exist!</translation>
+        <translation>Target dir is not exist!</translation>
     </message>
     <message>
         <location filename="../src/pk.cpp" line="258"/>
