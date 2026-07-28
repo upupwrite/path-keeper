@@ -38,10 +38,9 @@ namespace
 const Json::Value DEFAULT_CONFIG = []()
 {
     Json::Value config;
-    config["global_log"] = false;  // 新增全局日志开关
+    config["global_log"] = false;
     config["path"] = Json::objectValue;
     config["recent"] = Json::nullValue;
-    config["shell"] = "sh";
     config["editor"] = "";
     return config;
 }();
@@ -293,8 +292,6 @@ Json::Value File::loadConfig()
             config["path"] = Json::objectValue;
         if (!config.isMember("recent"))
             config["recent"] = Json::nullValue;
-        if (!config.isMember("shell"))
-            config["shell"] = "NONE";
         if (!config.isMember("editor"))
             config["editor"] = "";
         if (!config.isMember("global_log"))

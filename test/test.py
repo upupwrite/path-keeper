@@ -272,15 +272,24 @@ def test_execute(setup_home_and_cleanup):
     测试执行:
     添加一个目录包含一个命令,检验std::out是否符合预期
     """
+    home = setup_home_and_cleanup
     with tempfile.TemporaryDirectory() as dir1:
         board = run_pk("-s")
         assert "没有记录" in board.stderr
+        jsonclear = read_config(home)
+        print(jsonclear)
+        assert "shell" not in jsonclear
         run_pk("-a", input_text=f"{dir1}\nls\n")
         oneline = run_pk("-s")
         assert "ls" in oneline.stderr
         assert dir1 in oneline.stderr
 
         pk_command_return = run_pk("-e", input_text="1.1\n")
+        print(pk_command_return.stderr)
+        print(pk_command_return.stdout)
+        jsonfile = read_config(home)
+        print(jsonfile)
+        assert "shell" not in jsonfile
         assert len(pk_command_return.stdout) != 0
 
 
