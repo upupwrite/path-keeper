@@ -38,10 +38,12 @@ jobs:
         sudo apt-get install -y \
           libjsoncpp-dev \
           libreadline-dev \
-          qtbase6-dev \
-          qttools6-dev-tools \
+          qtbase5-dev \
+          qttools5-dev-tools \
+          qt6-*{dev}* \
           pkg-config \
           python3-pytest \
+
 
     - name: Set reusable strings
       id: strings
