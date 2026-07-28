@@ -289,6 +289,7 @@ def test_execute(setup_home_and_cleanup):
         jsonfile = read_config(home)
         print(jsonfile)
 
+
 # TODO: 完成log功能
 # def test_log(setup_home_and_cleanup):
 #     """
@@ -322,7 +323,10 @@ def test_execute(setup_home_and_cleanup):
 
 def test_config(setup_home_and_cleanup):
     config_result = subprocess.run(
-        ["pk", "config", "-editor", "vim"], capture_output=True, text=True, check=False
+        [PK_BINARY, "config", "-editor", "vim"],
+        capture_output=True,
+        text=True,
+        check=False,
     )
     print(config_result.stderr)
     assert "Selected editor" in config_result.stderr
