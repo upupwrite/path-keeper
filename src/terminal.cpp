@@ -24,19 +24,19 @@
 //               << std::endl;
 // }
 
-std::string shell_escape(const std::string& s) {
-    std::string escaped;
-    escaped.push_back('\'');
-    for (char c : s) {
-        if (c == '\'') {
-            escaped.append("'\\''");
-        } else {
-            escaped.push_back(c);
-        }
-    }
-    escaped.push_back('\'');
-    return escaped;
-}
+//std::string shell_escape(const std::string& s) {
+//    std::string escaped;
+//    escaped.push_back('\'');
+//    for (char c : s) {
+//        if (c == '\'') {
+//            escaped.append("'\\''");
+//        } else {
+//            escaped.push_back(c);
+//        }
+//    }
+//    escaped.push_back('\'');
+//    return escaped;
+//}
 
 
 Shell::Shell()
@@ -63,43 +63,35 @@ void Shell::shellCommand(const std::string& command, const std::string& dir,
     Json::Value config = file.loadConfig();
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
-
-    if (!self)
+    std::string shell_command;
+    if (std::empty(shell))
     {
-        std::string shell_command;
-        std::string safe_prefix = shell_escape(log_prefix);
-        std::string safe_file   = shell_escape(log_file);
-        std::string safe_cmd    = shell_escape(shell_command);
-        if (std::empty(shell))
+        shell_command = "cd " + dir + " && " + command;
+    }
+    else
+    {
+        shell_command =
+            shell + " <<EOF\n" + "cd " + dir + " && " + command + "\nEOF";
+    }
+    if (!self && !std::empty(shell_command))
+    {
+        if (record)
         {
-            shell_command = "cd " + dir + " && " + command;
+            std::cout << "echo '\n" << log_prefix << "' >> " << log_file
+                      << " && "
+                      << "tmux pipe-pane 'cat >> " << log_file << "'&&"
+                      << shell_command << "\n"
+                      << "tmux pipe-pane" << std::endl;
         }
         else
         {
-            shell_command =
-                shell + " <<EOF\n" + "cd " + dir + " && " + command + "\nEOF";
+            std::cout << "echo '\n" << log_prefix << "' >> " << log_file << " && "
+                      << shell_command << std::endl;
         }
-
-        try {
-            if (record){
-                std::cout << "sed -i '1i " << safe_prefix << "' " << safe_file
-                          << " && "
-                          << "tmux pipe-pane 'cat >> " << safe_file << "' && "
-                          << safe_cmd << " && "
-                          << "tmux pipe-pane" << std::endl;
-            } else {
-                std::cout << "sed -i '1i " << safe_prefix << "' " << safe_file
-                          << " && " << safe_cmd << std::endl;
-            }
-        } catch (const std::exception &e) {
-            std::cerr<<"ERRO: "<<e.what()<<std::endl;
-            std::cout<<""<<std::endl;
-        }
-
     }
 
     else
     {
-        std::cout << command << std::endl;
+        std::cout << shell_command << std::endl;
     }
 }
