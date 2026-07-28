@@ -28,7 +28,7 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@main
 
     # ---------- 安装系统依赖（仅 Ubuntu） ----------
     - name: Install dependencies (Ubuntu)
