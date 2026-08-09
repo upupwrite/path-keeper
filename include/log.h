@@ -6,11 +6,10 @@
 #include <iostream>
 #include <sstream>
 
-class Log
-{
+class Log {
 public:
-    Log();
-    std::string timestamp();
+  Log();
+  std::string timestamp();
 };
 
-#endif  // LOG_H
+#endif // LOG_H
