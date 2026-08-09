@@ -19,7 +19,7 @@
 
 #include "colors.h"
 
-const std::string VERSION = "2.4.9";
+const std::string VERSION = "2.4.10";
 
 void showVersion(bool verbose) {
   std::cerr << "path-keeper v" << VERSION << "\n";
