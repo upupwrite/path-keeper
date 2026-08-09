@@ -50,9 +50,7 @@ private:
 
     std::string getInputIndex(const std::string &provided_index,
                               const std::string &prompt);
-    bool parseIndex(const std::string &index_str,
-                    std::vector<std::string> &valid_dirs, Json::Value &paths,
-                    std::string &directory, int &cmd_idx);
+
 
     void saveRecentRecord(Json::Value &config, const std::string &directory,
                           int cmd_idx);
@@ -73,6 +71,8 @@ public:
     void runPoint(const std::string &cmd_index = "");
     void selectRun(const std::string &cmd_index = "",
                    const bool set_recent = true, const bool show = true);
-
+    bool parseIndex(const std::string &index_str,
+                    std::vector<std::string> &valid_dirs, Json::Value &paths,
+                    std::string &directory, int &cmd_idx);
     std::string cwd;
 };

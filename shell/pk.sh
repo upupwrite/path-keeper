@@ -28,7 +28,7 @@ _pk_binary() {
 
 pk() {
     case "${1:-}" in
-        -e|""|search|log|config)
+        -e|""|search|log|config|-p)
             local cmd_output
             local ret
             cmd_output=$(_pk_binary "$@")

@@ -159,7 +159,6 @@ def test_execute_recent(setup_home_and_cleanup):
 def test_point_execution_no_recent(setup_home_and_cleanup):
     """
     测试点执行（-p）：执行命令但不更新 recent。
-    需要提供 Y 确认哈希验证。
     """
     home = setup_home_and_cleanup
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -175,7 +174,7 @@ def test_point_execution_no_recent(setup_home_and_cleanup):
         assert recent_before is not None
 
         # 执行 -p 1.1，提供信任输入
-        result = run_pk("-p", "1.1", input_text="Y\n")
+        result = run_pk("-p", "1.1")
         assert result.returncode == 0
         # 输出应包含 ls -l
         assert "ls -l" in result.stdout
@@ -289,38 +288,6 @@ def test_execute(setup_home_and_cleanup):
         jsonfile = read_config(home)
         print(jsonfile)
 
-
-# TODO: 完成log功能
-# def test_log(setup_home_and_cleanup):
-#     """
-#     测试log是否符合格式:
-#     添加两个命令并执行需要log,验证pk_log文件
-#     """
-#     with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
-#         run_pk("-a", input_text=".\ncmd1\n", cwd=dir1)
-#         run_pk("-a", input_text=".\ncmd2\n", cwd=dir2)
-#         log_enable_result = subprocess.run(
-#             ["pk", "log", "--enable", "1.1"],
-#             capture_output=True,
-#             text=True,
-#             check=False,
-#         )
-#         assert "配置完成" in log_enable_result.stderr
-#         log_enable_global = subprocess.run(
-#             ["pk", "log", "--enable", "global"],
-#             capture_output=True,
-#             text=True,
-#             check=False,
-#         )
-#         assert "Enabled" in log_enable_global.stderr
-#         file_global_setting = read_config(setup_home_and_cleanup)
-#         assert "True" in file_global_setting
-#         assert "global" in file_global_setting
-#         subprocess.run(["pk", "log", "--disable"], input="1.2\n", check=False)
-#         file_disable_setting = read_config(setup_home_and_cleanup)
-#         assert "false" in file_disable_setting["path"][dir2][1]["log"]
-
-
 def test_config(setup_home_and_cleanup):
     config_result = subprocess.run(
         [PK_BINARY, "config", "-editor", "vim"],
@@ -333,3 +300,61 @@ def test_config(setup_home_and_cleanup):
     result = run_pk("config")
     print(result.stdout)
     assert "vim" in result.stdout
+
+# TODO: 完成log功能
+def test_log(setup_home_and_cleanup):
+    """
+    测试log是否符合格式:
+    添加两个命令并执行需要log,验证pk_log文件
+    """
+    with tempfile.TemporaryDirectory() as dir1, tempfile.TemporaryDirectory() as dir2:
+        run_pk("-a", input_text=".\ncmd1\n", cwd=dir1)
+        run_pk("-a", input_text=".\ncmd1.2\n", cwd=dir1)
+        run_pk("-a", input_text=".\ncmd2\n", cwd=dir2)
+        print(run_pk("-s").stderr)
+        log_enable_result = subprocess.run(
+            [PK_BINARY, "log", "--enable", "1.1"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(log_enable_result.stderr)
+        assert "enabled" in log_enable_result.stderr
+        log_enable_global = subprocess.run(
+            [PK_BINARY, "log", "--enable", "global"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(log_enable_global.stderr)
+        assert "enabled" in log_enable_global.stderr
+
+
+        file_global_setting = read_config(setup_home_and_cleanup)
+        assert "global_log" in file_global_setting
+        assert file_global_setting["global_log"]
+        result=subprocess.run([PK_BINARY, "log", "--disable"], input="1.2\n", check=False,capture_output=True,text=True)
+        print(result.stderr)
+        file_disable_setting = read_config(setup_home_and_cleanup)
+        print(file_disable_setting["path"])
+        assert not file_disable_setting["path"][dir1][1]["log"]
+
+        # ---disable---
+        log_enable_result = subprocess.run(
+            [PK_BINARY, "log", "--disable", "1.1"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(log_enable_result.stderr)
+        assert "disable" in log_enable_result.stderr
+        log_enable_global = subprocess.run(
+            [PK_BINARY, "log", "--disable", "global"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(log_enable_global.stderr)
+        assert "disable" in log_enable_global.stderr
+
+

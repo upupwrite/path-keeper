@@ -106,16 +106,117 @@ void Interaction::main(int argc, char **argv)
         {
             if (argc > 2)
             {
-                if(std::strcmp(argv[2],"--enable")==0){
+                File file;
 
+                // 处理 --enable 选项
+                if (std::strcmp(argv[2], "--enable") == 0)
+                {
+                    if (argc >= 4 && std::strcmp(argv[3], "global") == 0)
+                    {
+                        // 启用全局日志
+                        file.setGlobalLogEnabled(true);
+                        std::cerr << "Global logging is enabled" << std::endl;
+                    }
+                    else if (argc >= 4)
+                    {
+                        // 启用特定命令的日志
+                        auto config = pk.showRecord(false);
+                        std::string target = argv[3];
+                        std::string directory;
+                        int cmd_idx;
+                        auto valid_dirs = file.get_valid_directories(config["path"]);
+
+                        if (!pk.parseIndex(target, valid_dirs, config["path"], directory, cmd_idx))
+                        {
+                            std::cerr << "Invalid number" << std::endl;
+                            return;
+                        }
+
+                        file.setCommandLogEnabled(directory, cmd_idx, true);
+                        std::cerr << target << " logging is enabled" << std::endl;
+                    }
+                    else
+                    {
+                        // 交互式输入
+                        auto config = pk.showRecord();
+                        std::cerr << QCoreApplication::translate("Interaction", "Input index: ").toStdString();
+                        std::string target;
+                        std::getline(std::cin, target);
+                        std::string directory;
+                        int cmd_idx;
+                        auto valid_dirs = file.get_valid_directories(config["path"]);
+
+                        if (!pk.parseIndex(target, valid_dirs, config["path"], directory, cmd_idx))
+                        {
+                            std::cerr << "Invalid number" << std::endl;
+                            return;
+                        }
+
+                        file.setCommandLogEnabled(directory, cmd_idx, true);
+                        std::cerr << target << " logging is enabled" << std::endl;
+                    }
+                }
+                // 处理 --disable 选项
+                else if (std::strcmp(argv[2], "--disable") == 0)
+                {
+                    if (argc >= 4 && std::strcmp(argv[3], "global") == 0)
+                    {
+                        // 禁用全局日志
+                        file.setGlobalLogEnabled(false);
+                        std::cerr << "Global logging is disabled" << std::endl;
+                    }
+                    else if (argc >= 4)
+                    {
+                        // 禁用特定命令的日志
+                        auto config = pk.showRecord(false);
+                        std::string target = argv[3];
+                        std::string directory;
+                        int cmd_idx;
+                        auto valid_dirs = file.get_valid_directories(config["path"]);
+
+                        if (!pk.parseIndex(target, valid_dirs, config["path"], directory, cmd_idx))
+                        {
+                            std::cerr << "Invalid number" << std::endl;
+                            return;
+                        }
+
+                        file.setCommandLogEnabled(directory, cmd_idx, false);
+                        std::cerr << target << " logging is disabled" << std::endl;
+                    }
+                    else
+                    {
+                        // 交互式输入
+                        auto config = pk.showRecord();
+                        std::cerr << QCoreApplication::translate("Interaction", "Input index: ").toStdString();
+                        std::string target;
+                        std::getline(std::cin, target);
+                        std::string directory;
+                        int cmd_idx;
+                        auto valid_dirs = file.get_valid_directories(config["path"]);
+
+                        if (!pk.parseIndex(target, valid_dirs, config["path"], directory, cmd_idx))
+                        {
+                            std::cerr << "Invalid number" << std::endl;
+                            return;
+                        }
+
+                        file.setCommandLogEnabled(directory, cmd_idx, false);
+                        std::cerr << target << " logging is disabled" << std::endl;
+                    }
+                }
+                else
+                {
+                    // 无效选项
+                    std::cerr << "Invalid option. Use --enable or --disable" << std::endl;
                 }
             }
-            //            else if (argc)
-            else{
+            else
+            {
+                // 参数不足时显示日志文件
                 shell.shellCommand("less .pk.log", "~", false, true);
-
             }
         }
+
         else if (option == "config")
         {
             Editor editor;
@@ -187,9 +288,13 @@ void Interaction::main(int argc, char **argv)
             std::cerr << QCoreApplication::translate("Interaction", "用法")
                              .toStdString()
                       << ": pk [-a | -s | -p "
-                         "| -c | -e "
-                         "[index]]"
-                      << std::endl;
+                       "| -c | -e "
+                       "[index]]" << std::endl
+                    << "      pk search" << std::endl
+                    << "      pk log [--enable|--disable] [global|index]" << std::endl
+                    << "      pk config [-editor [editor]]" << std::endl
+                    << "      pk -h | --help" << std::endl
+                    << "      pk -v | --version" << std::endl;
         }
     }
     catch (const std::exception &e)
