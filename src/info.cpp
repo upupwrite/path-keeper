@@ -19,7 +19,7 @@
 
 #include "colors.h"
 
-const std::string VERSION = "2.4.9";
+const std::string VERSION = "2.5.0";
 
 void showVersion(bool verbose)
 {

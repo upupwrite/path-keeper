@@ -15,6 +15,7 @@
 #include "terminal.h"
 
 #include <unistd.h>
+
 #include <cstdlib>
 #include <iostream>
 
@@ -38,7 +39,8 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
 {
     static bool tmux_checked = false;
     static bool has_tmux = false;
-    if (!tmux_checked) {
+    if (!tmux_checked)
+    {
         has_tmux = (system("which tmux > /dev/null 2>&1") == 0);
         tmux_checked = true;
     }
@@ -71,7 +73,9 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
         }
         else if (record && !has_tmux)
         {
-            std::cerr << "Warning: tmux not found, logging output not available." << std::endl;
+            std::cerr
+                << "Warning: tmux not found, logging output not available."
+                << std::endl;
             std::cout << "echo '\n"
                       << log_prefix << "' >> " << log_file << " && "
                       << shell_command << std::endl;
