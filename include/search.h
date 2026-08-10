@@ -19,18 +19,23 @@
 
 #include "loadfile.h"
 
-struct SearchResult {
-  bool valid;
-  std::string directory;
-  int commandIndex;
-  std::string effectiveCommand;
+struct SearchResult
+{
+    bool valid;
+    std::string directory;
+    int commandIndex;
+    std::string effectiveCommand;
 
-  SearchResult() : valid(false), commandIndex(-1) {}
-  SearchResult(const std::string &dir, int idx, const std::string &cmd)
-      : valid(true), directory(dir), commandIndex(idx), effectiveCommand(cmd) {}
+    SearchResult() : valid(false), commandIndex(-1) {}
+    SearchResult(const std::string &dir, int idx, const std::string &cmd)
+        : valid(true), directory(dir), commandIndex(idx), effectiveCommand(cmd)
+    {
+    }
 };
 
-class Searcher {
+class Searcher
+{
 public:
-  static SearchResult interactiveSearch(const Json::Value &config, File &file);
+    static SearchResult interactiveSearch(const Json::Value &config,
+                                          File &file);
 };
