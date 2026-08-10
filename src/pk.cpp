@@ -417,11 +417,6 @@ void PathKeeper::runPoint(const std::string &cmd_index,
     selectRun(cmd_index, false, show, extra, false);
 }
 
-void PathKeeper::runExtra(const std::string &index, const std::string &extra)
-{
-    selectRun(index, true, false, extra);
-}
-
 void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
 {
     for (Json::ArrayIndex j = 0; j < commands.size(); j++)

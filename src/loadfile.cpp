@@ -567,7 +567,7 @@ bool File::isCommandLogEnabled(const std::string &dir, int cmdIndex)
         {
             return cmdObj["log"].asBool();
         }
-        return config["global_log"].asBool();
+        return false;
     }
     catch (...)
     {

@@ -65,7 +65,6 @@ public:
     void addRecord();
     void runCommand(const std::string &directory, const std::string &command,
                     const std::string &extra = "");
-    void runExtra(const std::string &index, const std::string &extra);
     void setRecent(const std::string &cmd_index = "");
     void runRecent();
     void setCommand();
