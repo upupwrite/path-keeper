@@ -57,18 +57,27 @@ void Interaction::main(int argc, char **argv)
         else if (option == "-p" || option == "--point")
         {
             dir();
-            if (argc > 2)
-            {
-                if (argc>3){
-                    pk.runPoint(argv[2],argv[3]);
+            std::string index;
+            std::string extra;
+            if (argc > 2) {
+                if (argv[2][0] == '-') {
+                    for (int i = 2; i < argc; ++i) {
+                        if (!extra.empty()) extra += " ";
+                        extra += argv[i];
+                    }
+                } else {
+                    index = argv[2];
+                    for (int i = 3; i < argc; ++i) {
+                        if (!extra.empty()) extra += " ";
+                        extra += argv[i];
+                    }
                 }
-
-                pk.runPoint(argv[2],);
             }
-            else
-            {
-                pk.runPoint();
+            if (index.empty() && !extra.empty()) {
+                std::cerr << Colors::YELLOW << "警告: 没有索引时，额外参数将被忽略" << Colors::RESET << std::endl;
+                return;
             }
+            pk.runPoint(index, extra);
         }
         else if (option == "-c" || option == "--configure")
         {
@@ -78,17 +87,31 @@ void Interaction::main(int argc, char **argv)
         else if (option == "-e" || option == "--execute")
         {
             dir();
-
-            if (argc > 2)
-            {
-                if(argc>3){
-                    pk.runExtra(argv[2],argv[3]);
+            std::string index;
+            std::string extra;
+            if (argc > 2) {
+                if (argv[2][0] == '-') {
+                    for (int i = 2; i < argc; ++i) {
+                        if (!extra.empty()) extra += " ";
+                        extra += argv[i];
+                    }
+                } else {
+                    index = argv[2];
+                    for (int i = 3; i < argc; ++i) {
+                        if (!extra.empty()) extra += " ";
+                        extra += argv[i];
+                    }
                 }
-                pk.selectRun(argv[2], true, false);
             }
-            else
-            {
-                pk.selectRun();
+            if (index.empty() && !extra.empty()) {
+                std::cerr << Colors::YELLOW << "警告: 没有索引时，额外参数将被忽略" << Colors::RESET << std::endl;
+                return;
+            }
+            if (!index.empty()) {
+                pk.selectRun(index, true, false, extra, true);
+            } else {
+                // 无索引且无额外参数：进入交互选择
+                pk.selectRun("", true, true, "", true);
             }
         }
         else if (option == "-v" || option == "--version")
@@ -303,6 +326,34 @@ void Interaction::main(int argc, char **argv)
                 }
             }
         }
+        else if (option == "alias")
+        {
+            if (argc < 3) {
+                std::cerr << "用法: pk alias add <名称> <索引> | remove <名称> | list | install\n";
+                return;
+            }
+            std::string subcmd = argv[2];
+            if (subcmd == "add") {
+                if (argc < 5) {
+                    std::cerr << "用法: pk alias add <名称> <索引>\n";
+                    return;
+                }
+                pk.addAlias(argv[3], argv[4]);
+            } else if (subcmd == "remove") {
+                if (argc < 4) {
+                    std::cerr << "用法: pk alias remove <名称>\n";
+                    return;
+                }
+                pk.removeAlias(argv[3]);
+            } else if (subcmd == "list") {
+                pk.listAliases();
+            } else if (subcmd == "install") {
+                pk.installAliases();
+            } else {
+                std::cerr << "未知 alias 子命令: " << subcmd << "\n";
+                std::cerr << "用法: pk alias add <名称> <索引> | remove <名称> | list | install\n";
+            }
+        }
         else
         {
             std::cerr << Colors::RED
@@ -320,6 +371,7 @@ void Interaction::main(int argc, char **argv)
                       << "      pk log [--enable|--disable] [global|index]"
                       << std::endl
                       << "      pk config [-editor [editor]]" << std::endl
+                      << "      pk alias add <名称> <索引> | remove <名称> | list | install" << std::endl
                       << "      pk -h | --help" << std::endl
                       << "      pk -v | --version" << std::endl;
         }

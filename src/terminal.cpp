@@ -14,29 +14,9 @@
 
 #include "terminal.h"
 
-// #include "pk.h"
-
-// void PathKeeper::shellCommand(const std::string& command,
-//                               const std::string& cwd)
-//{
-//     //    std::cout<<myshell<<" -c cd "<<cwd<<" "<<command;
-//     std::cout << "cd " << cwd << " && " << command << " && cd " << this->cwd
-//               << std::endl;
-// }
-
-// std::string shell_escape(const std::string& s) {
-//     std::string escaped;
-//     escaped.push_back('\'');
-//     for (char c : s) {
-//         if (c == '\'') {
-//             escaped.append("'\\''");
-//         } else {
-//             escaped.push_back(c);
-//         }
-//     }
-//     escaped.push_back('\'');
-//     return escaped;
-// }
+#include <unistd.h>
+#include <cstdlib>
+#include <iostream>
 
 Shell::Shell()
 {
@@ -53,10 +33,16 @@ Shell::Shell()
     file.load_key_order();
 }
 
-// only one with std::cout
 void Shell::shellCommand(const std::string &command, const std::string &dir,
                          const bool record, const bool self)
 {
+    static bool tmux_checked = false;
+    static bool has_tmux = false;
+    if (!tmux_checked) {
+        has_tmux = (system("which tmux > /dev/null 2>&1") == 0);
+        tmux_checked = true;
+    }
+
     std::string log_prefix = "[" + log.timestamp() + "]\n" + "DIR: " + dir +
                              "\n" + "COMMAND: " + command + "\n";
     Json::Value config = file.loadConfig();
@@ -72,9 +58,10 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
         shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
                         " && cd " + cwd + "\nEOF";
     }
+
     if (!self && !std::empty(shell_command))
     {
-        if (record)
+        if (record && has_tmux)
         {
             std::cout << "echo '\n"
                       << log_prefix << "' >> " << log_file << " && "
@@ -82,14 +69,18 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
                       << shell_command << "\n"
                       << "tmux pipe-pane" << std::endl;
         }
-        else
+        else if (record && !has_tmux)
         {
+            std::cerr << "Warning: tmux not found, logging output not available." << std::endl;
             std::cout << "echo '\n"
                       << log_prefix << "' >> " << log_file << " && "
                       << shell_command << std::endl;
         }
+        else
+        {
+            std::cout << shell_command << std::endl;
+        }
     }
-
     else
     {
         std::cout << shell_command << std::endl;
