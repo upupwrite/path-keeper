@@ -38,47 +38,60 @@
 //     return escaped;
 // }
 
-Shell::Shell() {
-  char buffer[1024];
-  if (getcwd(buffer, sizeof(buffer)) != nullptr) {
-    cwd = buffer;
-  } else {
-    cwd = ".";
-  }
+Shell::Shell()
+{
+    char buffer[1024];
+    if (getcwd(buffer, sizeof(buffer)) != nullptr)
+    {
+        cwd = buffer;
+    }
+    else
+    {
+        cwd = ".";
+    }
 
-  file.load_key_order();
+    file.load_key_order();
 }
 
 // only one with std::cout
 void Shell::shellCommand(const std::string &command, const std::string &dir,
-                         const bool record, const bool self) {
-  std::string log_prefix = "[" + log.timestamp() + "]\n" + "DIR: " + dir +
-                           "\n" + "COMMAND: " + command + "\n";
-  Json::Value config = file.loadConfig();
-  std::string shell = config["shell"].asString();
-  std::string log_file = Achieve::LOG_FILE;
-  std::string shell_command;
-  if (std::empty(shell)) {
-    shell_command = "cd " + dir + " && " + command + " && cd " + cwd;
-  } else {
-    shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
-                    " && cd " + cwd + "\nEOF";
-  }
-  if (!self && !std::empty(shell_command)) {
-    if (record) {
-      std::cout << "echo '\n"
-                << log_prefix << "' >> " << log_file << " && "
-                << "tmux pipe-pane 'cat >> " << log_file << "'&&"
-                << shell_command << "\n"
-                << "tmux pipe-pane" << std::endl;
-    } else {
-      std::cout << "echo '\n"
-                << log_prefix << "' >> " << log_file << " && " << shell_command
-                << std::endl;
+                         const bool record, const bool self)
+{
+    std::string log_prefix = "[" + log.timestamp() + "]\n" + "DIR: " + dir +
+                             "\n" + "COMMAND: " + command + "\n";
+    Json::Value config = file.loadConfig();
+    std::string shell = config["shell"].asString();
+    std::string log_file = Achieve::LOG_FILE;
+    std::string shell_command;
+    if (std::empty(shell))
+    {
+        shell_command = "cd " + dir + " && " + command + " && cd " + cwd;
     }
-  }
+    else
+    {
+        shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
+                        " && cd " + cwd + "\nEOF";
+    }
+    if (!self && !std::empty(shell_command))
+    {
+        if (record)
+        {
+            std::cout << "echo '\n"
+                      << log_prefix << "' >> " << log_file << " && "
+                      << "tmux pipe-pane 'cat >> " << log_file << "'&&"
+                      << shell_command << "\n"
+                      << "tmux pipe-pane" << std::endl;
+        }
+        else
+        {
+            std::cout << "echo '\n"
+                      << log_prefix << "' >> " << log_file << " && "
+                      << shell_command << std::endl;
+        }
+    }
 
-  else {
-    std::cout << shell_command << std::endl;
-  }
+    else
+    {
+        std::cout << shell_command << std::endl;
+    }
 }

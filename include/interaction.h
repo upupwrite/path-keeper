@@ -16,13 +16,14 @@
 #include "pk.h"
 #include "terminal.h"
 
-class Interaction {
+class Interaction
+{
 public:
-  Interaction();
-  void main(int argc, char *argv[]);
+    Interaction();
+    void main(int argc, char *argv[]);
 
 private:
-  PathKeeper pk;
-  Shell shell;
-  void dir();
+    PathKeeper pk;
+    Shell shell;
+    void dir();
 };

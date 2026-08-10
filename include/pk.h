@@ -38,39 +38,41 @@
 
 #include "loadfile.h"
 #include "terminal.h"
-class PathKeeper {
+class PathKeeper
+{
 private:
-  File file;
-  Shell shell;
+    File file;
+    Shell shell;
 
-  void displayCommands(const Json::Value &commands, int parent_index = 0);
+    void displayCommands(const Json::Value &commands, int parent_index = 0);
 
-  void displayRecentMark(const Json::Value &config, const Json::Value &paths);
+    void displayRecentMark(const Json::Value &config, const Json::Value &paths);
 
-  std::string getInputIndex(const std::string &provided_index,
-                            const std::string &prompt);
+    std::string getInputIndex(const std::string &provided_index,
+                              const std::string &prompt);
 
-  void saveRecentRecord(Json::Value &config, const std::string &directory,
-                        int cmd_idx);
+    void saveRecentRecord(Json::Value &config, const std::string &directory,
+                          int cmd_idx);
 
-  void processIndexSelection(const std::string &index_str, Json::Value &paths,
-                             Json::Value &config, bool execute_command,
-                             bool set_recent = true);
+    void processIndexSelection(const std::string &index_str, const Json::Value &paths,
+                               Json::Value &config, bool execute_command,
+                               bool set_recent = true);
 
 public:
-  PathKeeper();
-  void addRecord();
-  void runCommand(const std::string &directory, const std::string &command);
-  void setRecent(const std::string &cmd_index = "");
-  void runRecent();
-  void setCommand();
-  void search();
-  Json::Value showRecord(const bool show = true);
-  void runPoint(const std::string &cmd_index = "");
-  void selectRun(const std::string &cmd_index = "",
-                 const bool set_recent = true, const bool show = true);
-  bool parseIndex(const std::string &index_str,
-                  std::vector<std::string> &valid_dirs, Json::Value &paths,
-                  std::string &directory, int &cmd_idx);
-  std::string cwd;
+    PathKeeper();
+    void addRecord();
+    void runCommand(const std::string &directory, const std::string &command,const std::string &extra);
+    void runExtra(const std::string &index,const std::string &extra);
+    void setRecent(const std::string &cmd_index = "");
+    void runRecent();
+    void setCommand();
+    void search();
+    Json::Value showRecord(const bool show = true);
+    void runPoint(const std::string &cmd_index = "",const std::string &extra="");
+    void selectRun(const std::string &cmd_index = "",
+                   const bool set_recent = true, const bool show = true);
+    bool parseIndex(const std::string &index_str,
+                    std::vector<std::string> &valid_dirs, Json::Value &paths,
+                    std::string &directory, int &cmd_idx);
+    std::string cwd;
 };

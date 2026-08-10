@@ -18,14 +18,15 @@
 #include "loadfile.h"
 #include "log.h"
 
-class Shell {
+class Shell
+{
 private:
-  File file;
-  Log log;
+    File file;
+    Log log;
 
 public:
-  Shell();
-  std::string cwd;
-  void shellCommand(const std::string &command, const std::string &dir,
-                    const bool record = false, const bool self = false);
+    Shell();
+    std::string cwd;
+    void shellCommand(const std::string &command, const std::string &dir,
+                      const bool record = false, const bool self = false);
 };
