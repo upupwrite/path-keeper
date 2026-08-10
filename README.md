@@ -170,7 +170,10 @@ Enable shell integration by adding to ~/.bashrc or ~/.zshrc:
 ```bash
 source /usr/local/share/path-keeper/pk.sh
 ```
-
+You can add pk initiate script with this command:  
+```bash
+echo 'source /usr/local/share/path-keeper/pk.sh' >> ~/.bashrc
+```
 ## Security Features
 
 Hash Verification:
