@@ -39,7 +39,7 @@ jobs:
     steps:
       # Checkout the repository to the GitHub Actions runner
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.1.1
 
       # Execute Codacy Analysis CLI and generate a SARIF output with the security issues identified during the analysis
       - name: Run Codacy Analysis CLI
@@ -59,9 +59,42 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
-      # Upload the SARIF file generated in the previous step
-      - name: Upload SARIF results file
+      # Validate the SARIF file exists and is valid JSON before attempting upload
+      - name: Validate SARIF
+        id: validate-sarif
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        run: |
+          sarif_valid=false
+          if [ -f results.sarif ]; then
+            if [ -s results.sarif ]; then
+              if jq empty results.sarif >/dev/null 2>&1; then
+                sarif_valid=true
+                echo "results.sarif exists and is valid JSON"
+              else
+                echo "ERROR: results.sarif exists but contains invalid JSON"
+                echo "--- start of invalid results.sarif (first 200 lines) ---"
+                head -n 200 results.sarif || true
+                echo "--- end of snippet ---"
+              fi
+            else
+              echo "ERROR: results.sarif exists but is empty"
+            fi
+          else
+            echo "ERROR: results.sarif not found"
+          fi
+          echo "sarif_valid=$sarif_valid" >> $GITHUB_OUTPUT
+
+      # Upload the SARIF file to GitHub code scanning only if it was validated
+      - name: Upload SARIF results file
+        if: steps.validate-sarif.outputs.sarif_valid == 'true'
+        uses: github/codeql-action/upload-sarif@v3.25.2
         with:
           sarif_file: results.sarif
+
+      # If SARIF was invalid or missing, upload it as an artifact for debugging
+      - name: Upload SARIF artifact for debugging
+        if: steps.validate-sarif.outputs.sarif_valid != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: codacy-sarif-debug
+          path: results.sarif
