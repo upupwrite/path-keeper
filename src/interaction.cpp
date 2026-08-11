@@ -26,7 +26,7 @@ Interaction::Interaction() {}
 
 void Interaction::dir()
 {
-    std::cerr << QCoreApplication::translate("Interaction", "当前所在的目录:")
+    std::cerr << QCoreApplication::translate("Interaction", "Current directory:")
                      .toStdString()
               << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
 }
@@ -74,7 +74,10 @@ void Interaction::main(int argc, char **argv)
                 }
             }
             if (index.empty() && !extra.empty()) {
-                std::cerr << Colors::YELLOW << "警告: 没有索引时，额外参数将被忽略" << Colors::RESET << std::endl;
+                std::cerr << Colors::YELLOW
+                          << QCoreApplication::translate("Interaction", "Warning: extra arguments will be ignored when no index is provided")
+                                 .toStdString()
+                          << Colors::RESET << std::endl;
                 return;
             }
             pk.runPoint(index, extra);
@@ -104,13 +107,16 @@ void Interaction::main(int argc, char **argv)
                 }
             }
             if (index.empty() && !extra.empty()) {
-                std::cerr << Colors::YELLOW << "警告: 没有索引时，额外参数将被忽略" << Colors::RESET << std::endl;
+                std::cerr << Colors::YELLOW
+                          << QCoreApplication::translate("Interaction", "Warning: extra arguments will be ignored when no index is provided")
+                                 .toStdString()
+                          << Colors::RESET << std::endl;
                 return;
             }
             if (!index.empty()) {
                 pk.selectRun(index, true, false, extra, true);
             } else {
-                // 无索引且无额外参数：进入交互选择
+                // No index and no extra arguments: enter interactive selection
                 pk.selectRun("", true, true, "", true);
             }
         }
@@ -139,18 +145,19 @@ void Interaction::main(int argc, char **argv)
             {
                 File file;
 
-                // 处理 --enable 选项
+                // Handle --enable option
                 if (std::strcmp(argv[2], "--enable") == 0)
                 {
                     if (argc >= 4 && std::strcmp(argv[3], "global") == 0)
                     {
-                        // 启用全局日志
+                        // Enable global logging
                         file.setGlobalLogEnabled(true);
-                        std::cerr << "Global logging is enabled" << std::endl;
+                        std::cerr << QCoreApplication::translate("Interaction", "Global logging is enabled")
+                                         .toStdString() << std::endl;
                     }
                     else if (argc >= 4)
                     {
-                        // 启用特定命令的日志
+                        // Enable logging for a specific command
                         auto config = pk.showRecord(false);
                         std::string target = argv[3];
                         std::string directory;
@@ -161,17 +168,19 @@ void Interaction::main(int argc, char **argv)
                         if (!pk.parseIndex(target, valid_dirs, config["path"],
                                            directory, cmd_idx))
                         {
-                            std::cerr << "Invalid number" << std::endl;
+                            std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
+                                             .toStdString() << std::endl;
                             return;
                         }
 
                         file.setCommandLogEnabled(directory, cmd_idx, true);
-                        std::cerr << target << " logging is enabled"
-                                  << std::endl;
+                        std::cerr << target
+                                  << QCoreApplication::translate("Interaction", " logging is enabled")
+                                         .toStdString() << std::endl;
                     }
                     else
                     {
-                        // 交互式输入
+                        // Interactive input
                         auto config = pk.showRecord();
                         std::cerr << QCoreApplication::translate(
                                          "Interaction", "Input index: ")
@@ -186,27 +195,30 @@ void Interaction::main(int argc, char **argv)
                         if (!pk.parseIndex(target, valid_dirs, config["path"],
                                            directory, cmd_idx))
                         {
-                            std::cerr << "Invalid number" << std::endl;
+                            std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
+                                             .toStdString() << std::endl;
                             return;
                         }
 
                         file.setCommandLogEnabled(directory, cmd_idx, true);
-                        std::cerr << target << " logging is enabled"
-                                  << std::endl;
+                        std::cerr << target
+                                  << QCoreApplication::translate("Interaction", " logging is enabled")
+                                         .toStdString() << std::endl;
                     }
                 }
-                // 处理 --disable 选项
+                // Handle --disable option
                 else if (std::strcmp(argv[2], "--disable") == 0)
                 {
                     if (argc >= 4 && std::strcmp(argv[3], "global") == 0)
                     {
-                        // 禁用全局日志
+                        // Disable global logging
                         file.setGlobalLogEnabled(false);
-                        std::cerr << "Global logging is disabled" << std::endl;
+                        std::cerr << QCoreApplication::translate("Interaction", "Global logging is disabled")
+                                         .toStdString() << std::endl;
                     }
                     else if (argc >= 4)
                     {
-                        // 禁用特定命令的日志
+                        // Disable logging for a specific command
                         auto config = pk.showRecord(false);
                         std::string target = argv[3];
                         std::string directory;
@@ -217,17 +229,19 @@ void Interaction::main(int argc, char **argv)
                         if (!pk.parseIndex(target, valid_dirs, config["path"],
                                            directory, cmd_idx))
                         {
-                            std::cerr << "Invalid number" << std::endl;
+                            std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
+                                             .toStdString() << std::endl;
                             return;
                         }
 
                         file.setCommandLogEnabled(directory, cmd_idx, false);
-                        std::cerr << target << " logging is disabled"
-                                  << std::endl;
+                        std::cerr << target
+                                  << QCoreApplication::translate("Interaction", " logging is disabled")
+                                         .toStdString() << std::endl;
                     }
                     else
                     {
-                        // 交互式输入
+                        // Interactive input
                         auto config = pk.showRecord();
                         std::cerr << QCoreApplication::translate(
                                          "Interaction", "Input index: ")
@@ -242,25 +256,27 @@ void Interaction::main(int argc, char **argv)
                         if (!pk.parseIndex(target, valid_dirs, config["path"],
                                            directory, cmd_idx))
                         {
-                            std::cerr << "Invalid number" << std::endl;
+                            std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
+                                             .toStdString() << std::endl;
                             return;
                         }
 
                         file.setCommandLogEnabled(directory, cmd_idx, false);
-                        std::cerr << target << " logging is disabled"
-                                  << std::endl;
+                        std::cerr << target
+                                  << QCoreApplication::translate("Interaction", " logging is disabled")
+                                         .toStdString() << std::endl;
                     }
                 }
                 else
                 {
-                    // 无效选项
-                    std::cerr << "Invalid option. Use --enable or --disable"
-                              << std::endl;
+                    // Invalid option
+                    std::cerr << QCoreApplication::translate("Interaction", "Invalid option. Use --enable or --disable")
+                                     .toStdString() << std::endl;
                 }
             }
             else
             {
-                // 参数不足时显示日志文件
+                // Not enough arguments – show log file
                 shell.shellCommand("less .pk.log", "~", false, true);
             }
         }
@@ -279,17 +295,19 @@ void Interaction::main(int argc, char **argv)
                         if (!currentEditor.empty())
                         {
                             std::cerr
-                                << "Current editor setting: " << currentEditor
-                                << "\n";
+                                << QCoreApplication::translate("Interaction", "Current editor setting: ")
+                                       .toStdString()
+                                << currentEditor << "\n";
                         }
                         auto editors = editor.getAvailableEditors();
 
                         if (editors.empty())
                         {
                             std::cerr
-                                << "No common editors found on your system.\n";
-                            std::cerr << "Please install one (e.g., vim, nano) "
-                                         "and rerun this script.\n";
+                                << QCoreApplication::translate("Interaction", "No common editors found on your system.")
+                                       .toStdString() << "\n";
+                            std::cerr << QCoreApplication::translate("Interaction", "Please install one (e.g., vim, nano) and rerun this script.")
+                                             .toStdString() << "\n";
                             return;
                         }
 
@@ -297,15 +315,18 @@ void Interaction::main(int argc, char **argv)
                         std::string selectedEditor =
                             editor.getUserChoice(editors);
 
-                        std::cerr << "\nSelected editor: " << selectedEditor
-                                  << "\n";
+                        std::cerr << "\n"
+                                  << QCoreApplication::translate("Interaction", "Selected editor: ")
+                                         .toStdString()
+                                  << selectedEditor << "\n";
                         editor.setEditor(selectedEditor);
                     }
                     else
                     {
                         std::string selectedEditor = argv[3];
-                        std::cerr << "Selected editor: " << selectedEditor
-                                  << "\n";
+                        std::cerr << QCoreApplication::translate("Interaction", "Selected editor: ")
+                                         .toStdString()
+                                  << selectedEditor << "\n";
                         editor.setEditor(selectedEditor);
                     }
                 }
@@ -321,7 +342,8 @@ void Interaction::main(int argc, char **argv)
                 }
                 else
                 {
-                    std::cerr << "No current editor setting" << std::endl;
+                    std::cerr << QCoreApplication::translate("Interaction", "No current editor setting")
+                                     .toStdString() << std::endl;
                     goto SETEDITOR;
                 }
             }
@@ -329,19 +351,22 @@ void Interaction::main(int argc, char **argv)
         else if (option == "alias")
         {
             if (argc < 3) {
-                std::cerr << "用法: pk alias add <名称> <索引> | remove <名称> | list | install\n";
+                std::cerr << QCoreApplication::translate("Interaction", "Usage: pk alias add <name> <index> | remove <name> | list | install")
+                                 .toStdString() << "\n";
                 return;
             }
             std::string subcmd = argv[2];
             if (subcmd == "add") {
                 if (argc < 5) {
-                    std::cerr << "用法: pk alias add <名称> <索引>\n";
+                    std::cerr << QCoreApplication::translate("Interaction", "Usage: pk alias add <name> <index>")
+                                     .toStdString() << "\n";
                     return;
                 }
                 pk.addAlias(argv[3], argv[4]);
             } else if (subcmd == "remove") {
                 if (argc < 4) {
-                    std::cerr << "用法: pk alias remove <名称>\n";
+                    std::cerr << QCoreApplication::translate("Interaction", "Usage: pk alias remove <name>")
+                                     .toStdString() << "\n";
                     return;
                 }
                 pk.removeAlias(argv[3]);
@@ -350,18 +375,20 @@ void Interaction::main(int argc, char **argv)
             } else if (subcmd == "install") {
                 pk.installAliases();
             } else {
-                std::cerr << "未知 alias 子命令: " << subcmd << "\n";
-                std::cerr << "用法: pk alias add <名称> <索引> | remove <名称> | list | install\n";
+                std::cerr << QCoreApplication::translate("Interaction", "Unknown alias subcommand: ")
+                                 .toStdString()
+                          << subcmd << "\n";
+                std::cerr << QCoreApplication::translate("Interaction", "Usage: pk alias add <name> <index> | remove <name> | list | install")
+                                 .toStdString() << "\n";
             }
         }
         else
         {
             std::cerr << Colors::RED
-                      << QCoreApplication::translate("Interaction",
-                                                     "未知选项: ")
+                      << QCoreApplication::translate("Interaction", "Unknown option: ")
                              .toStdString()
                       << option << Colors::RESET << std::endl;
-            std::cerr << QCoreApplication::translate("Interaction", "用法")
+            std::cerr << QCoreApplication::translate("Interaction", "Usage")
                              .toStdString()
                       << ": pk [-a | -s | -p "
                          "| -c | -e "
@@ -371,7 +398,7 @@ void Interaction::main(int argc, char **argv)
                       << "      pk log [--enable|--disable] [global|index]"
                       << std::endl
                       << "      pk config [-editor [editor]]" << std::endl
-                      << "      pk alias add <名称> <索引> | remove <名称> | list | install" << std::endl
+                      << "      pk alias add <name> <index> | remove <name> | list | install" << std::endl
                       << "      pk -h | --help" << std::endl
                       << "      pk -v | --version" << std::endl;
         }
@@ -379,7 +406,7 @@ void Interaction::main(int argc, char **argv)
     catch (const std::exception &e)
     {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("Interaction", "错误: ")
+                  << QCoreApplication::translate("Interaction", "Error: ")
                          .toStdString()
                   << e.what() << Colors::RESET << std::endl;
     }
