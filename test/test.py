@@ -454,4 +454,4 @@ def test_extra_arguments(setup_home_and_cleanup):
         result = run_pk("-e", "--extra", "ignored", input_text="1.1\nY\n")
         assert result.returncode == 0
         # 额外参数应被忽略，命令为 echo hello
-        assert "警告" in result.stderr
+        assert "Warning" in result.stderr
