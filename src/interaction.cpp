@@ -162,10 +162,8 @@ void Interaction::main(int argc, char **argv)
                         std::string target = argv[3];
                         std::string directory;
                         int cmd_idx;
-                        auto valid_dirs =
-                            file.get_valid_directories(config["path"]);
 
-                        if (!pk.parseIndex(target, valid_dirs, config["path"],
+                        if (!pk.parseIndex(target,config["path"],
                                            directory, cmd_idx))
                         {
                             std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
@@ -189,10 +187,8 @@ void Interaction::main(int argc, char **argv)
                         std::getline(std::cin, target);
                         std::string directory;
                         int cmd_idx;
-                        auto valid_dirs =
-                            file.get_valid_directories(config["path"]);
 
-                        if (!pk.parseIndex(target, valid_dirs, config["path"],
+                        if (!pk.parseIndex(target,config["path"],
                                            directory, cmd_idx))
                         {
                             std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
@@ -223,10 +219,8 @@ void Interaction::main(int argc, char **argv)
                         std::string target = argv[3];
                         std::string directory;
                         int cmd_idx;
-                        auto valid_dirs =
-                            file.get_valid_directories(config["path"]);
 
-                        if (!pk.parseIndex(target, valid_dirs, config["path"],
+                        if (!pk.parseIndex(target,config["path"],
                                            directory, cmd_idx))
                         {
                             std::cerr << QCoreApplication::translate("Interaction", "Invalid number")
@@ -250,10 +244,8 @@ void Interaction::main(int argc, char **argv)
                         std::getline(std::cin, target);
                         std::string directory;
                         int cmd_idx;
-                        auto valid_dirs =
-                            file.get_valid_directories(config["path"]);
 
-                        if (!pk.parseIndex(target, valid_dirs, config["path"],
+                        if (!pk.parseIndex(target,config["path"],
                                            directory, cmd_idx))
                         {
                             std::cerr << QCoreApplication::translate("Interaction", "Invalid number")

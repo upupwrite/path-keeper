@@ -49,6 +49,8 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
     std::string shell_command;
+
+    std::cerr<<cwd<<std::endl;
     if (std::empty(shell))
     {
         shell_command = "cd " + dir + " && " + command + " && cd " + cwd;
