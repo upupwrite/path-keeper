@@ -35,9 +35,20 @@
 #include <string>
 #include <thread>
 #include <vector>
-
+#include <optional>
 #include "loadfile.h"
 #include "terminal.h"
+
+struct ParseArgs
+{
+    const std::string *input_str=nullptr;
+    const std::string *prefix=nullptr;
+    const std::string *extra=nullptr;
+    bool show_board=false;
+    bool run_command=false;
+    bool set_recent=false;
+};
+
 
 class PathKeeper
 {
@@ -55,30 +66,27 @@ private:
     void saveRecentRecord(Json::Value &config, const std::string &directory,
                           int cmd_idx);
 
-    void processIndexSelection(const std::string &index_str, const Json::Value &paths,
-                               Json::Value &config, bool execute_command,
-                               bool set_recent = true, const std::string &extra = "");
 
 public:
     PathKeeper();
     void addRecord();
     void runCommand(const std::string &directory, const std::string &command, const std::string &extra = "");
-    void runExtra(const std::string &index, const std::string &extra);
     void setRecent(const std::string &cmd_index = "");
     void runRecent();
     void setCommand();
     void search();
-    Json::Value showRecord(const bool show = true);
+    Json::Value showRecord(const bool &show = true);
     void runPoint(const std::string &cmd_index = "", const std::string &extra = "");
     void selectRun(const std::string &cmd_index = "",
                    const bool set_recent = true, const bool show = true,
                    const std::string &extra = "",
                    bool allow_recent_fallback = true);
     bool parseIndex(const std::string &index_str,
-                    std::vector<std::string> &valid_dirs,
                     const Json::Value &paths,
                     std::string &directory,
                     int &cmd_idx);
+
+    void parseRun(const ParseArgs &args_struct);
 
     void addAlias(const std::string &name, const std::string &indexStr);
     void removeAlias(const std::string &name);
