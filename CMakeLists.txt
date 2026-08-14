@@ -21,7 +21,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # 设置 C++ 标准
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 启用自动 MOC 处理（如需使用 Q_OBJECT 宏）

@@ -361,13 +361,13 @@ void PathKeeper::setRecent(const std::string &cmd_index)
     if (config.isNull())
         return;
 
-    Json::Value paths = config["path"];
     std::string index_str = getInputIndex(
         cmd_index, QCoreApplication::translate("setRecent", "请输入目标编号: ")
                        .toStdString());
     if (index_str.empty())
         return;
-    ParseArgs to_args(&index_str);
+    ParseArgs to_args{.index_str=index_str};
+    to_args.set_recent=true;
     parseRun(to_args);
 }
 
@@ -402,8 +402,8 @@ void PathKeeper::selectRun(const std::string &cmd_index, const bool set_recent,
         return;
     }
     ParseArgs to_args{
-        .input_str=&index_str,
-        .extra=&extra
+        .index_str=index_str,
+        .extra=extra
     };
     to_args.set_recent=set_recent;
     to_args.run_command=true;
@@ -779,8 +779,8 @@ void PathKeeper::installAliases()
 
 
 void PathKeeper::parseRun(const ParseArgs &args_struct){
-    const std::string index_str= *args_struct.input_str;
-    const std::string extra= *args_struct.extra;
+    const std::string index_str= args_struct.index_str;
+    const std::string extra= args_struct.extra;
 
     const bool show_board=args_struct.show_board;
     const bool run_command=args_struct.run_command;

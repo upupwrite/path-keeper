@@ -50,15 +50,14 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
     std::string log_file = Achieve::LOG_FILE;
     std::string shell_command;
 
-    std::cerr<<cwd<<std::endl;
     if (std::empty(shell))
     {
-        shell_command = "cd " + dir + " && " + command + " && cd " + cwd;
+        shell_command = "cd " + dir + " && " + command + " ; cd " + cwd;
     }
     else
     {
         shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
-                        " && cd " + cwd + "\nEOF";
+                        " ; cd " + cwd + "\nEOF";
     }
 
     if (!self && !std::empty(shell_command))
