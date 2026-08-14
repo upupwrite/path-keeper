@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+ // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Path Keeper Contributors
 // This file is part of Path Keeper.
 // Path Keeper is free software: you can redistribute it and/or modify
@@ -41,9 +41,9 @@
 
 struct ParseArgs
 {
-    const std::string *input_str=nullptr;
-    const std::string *prefix=nullptr;
-    const std::string *extra=nullptr;
+    const std::string index_str;
+    const std::string prefix="";
+    const std::string extra="";
     bool show_board=false;
     bool run_command=false;
     bool set_recent=false;
