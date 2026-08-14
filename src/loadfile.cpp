@@ -622,15 +622,15 @@ void File::setCommandAlias(const std::string &dir, int cmdIndex,
     saveConfig(config);
 }
 
-//std::pair<std::string, std::string> File::getCommandIndexFromAlias(
-//    const std::string &alias)
+// std::pair<std::string, std::string> File::getCommandIndexFromAlias(
+//     const std::string &alias)
 //{
-//    auto config_path = loadConfig()["path"];
-//    for (auto &obj : config_path)
-//    {
-//        std::cerr << obj[1]["cmd"] << alias << std::endl;
-//    }
-//}
+//     auto config_path = loadConfig()["path"];
+//     for (auto &obj : config_path)
+//     {
+//         std::cerr << obj[1]["cmd"] << alias << std::endl;
+//     }
+// }
 
 // 获取实际执行的命令字符串（优先使用别名，否则使用原cmd）
 std::string File::getEffectiveCommand(const std::string &dir, int cmdIndex)

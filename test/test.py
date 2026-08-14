@@ -66,7 +66,7 @@ def run_pk(*args, input_text=None, cwd=None, env=None, timeout=10):
         cwd=cwd,
         env=merged_env,
         timeout=timeout,
-        check=False,  # 显式指定，避免 Pyright 警告
+        check=False,
     )
     return proc
 
@@ -455,3 +455,13 @@ def test_extra_arguments(setup_home_and_cleanup):
         assert result.returncode == 0
         # 额外参数应被忽略，命令为 echo hello
         assert "Warning" in result.stderr
+
+
+# def test_dir_return(setup_home_and_cleanup):
+#     home = setup_home_and_cleanup
+#     with tempfile.TemporaryDirectory() as dir1:
+#         run_pk("-a",input_text=f"{dir1}\nreturn -1\n")
+#         subprocess.run(
+# 
+
+

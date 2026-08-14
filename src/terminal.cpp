@@ -15,6 +15,7 @@
 #include "terminal.h"
 
 #include <unistd.h>
+
 #include <cstdlib>
 #include <iostream>
 
@@ -38,7 +39,8 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
 {
     static bool tmux_checked = false;
     static bool has_tmux = false;
-    if (!tmux_checked) {
+    if (!tmux_checked)
+    {
         has_tmux = (system("which tmux > /dev/null 2>&1") == 0);
         tmux_checked = true;
     }
@@ -49,14 +51,15 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
     std::string shell = config["shell"].asString();
     std::string log_file = Achieve::LOG_FILE;
     std::string shell_command;
+
     if (std::empty(shell))
     {
-        shell_command = "cd " + dir + " && " + command + " && cd " + cwd;
+        shell_command = "cd " + dir + " && " + command + " ; cd " + cwd;
     }
     else
     {
         shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
-                        " && cd " + cwd + "\nEOF";
+                        " ; cd " + cwd + "\nEOF";
     }
 
     if (!self && !std::empty(shell_command))
@@ -71,7 +74,9 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
         }
         else if (record && !has_tmux)
         {
-            std::cerr << "Warning: tmux not found, logging output not available." << std::endl;
+            std::cerr
+                << "Warning: tmux not found, logging output not available."
+                << std::endl;
             std::cout << "echo '\n"
                       << log_prefix << "' >> " << log_file << " && "
                       << shell_command << std::endl;
