@@ -1,4 +1,4 @@
- // SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Path Keeper Contributors
 // This file is part of Path Keeper.
 // Path Keeper is free software: you can redistribute it and/or modify
@@ -31,24 +31,24 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <ostream>
 #include <string>
 #include <thread>
 #include <vector>
-#include <optional>
+
 #include "loadfile.h"
 #include "terminal.h"
 
 struct ParseArgs
 {
     const std::string index_str;
-    const std::string prefix="";
-    const std::string extra="";
-    bool show_board=false;
-    bool run_command=false;
-    bool set_recent=false;
+    const std::string prefix = "";
+    const std::string extra = "";
+    //    bool show_board=false;
+    bool run_command = false;
+    bool set_recent = false;
 };
-
 
 class PathKeeper
 {
@@ -66,25 +66,24 @@ private:
     void saveRecentRecord(Json::Value &config, const std::string &directory,
                           int cmd_idx);
 
-
 public:
     PathKeeper();
     void addRecord();
-    void runCommand(const std::string &directory, const std::string &command, const std::string &extra = "");
+    void runCommand(const std::string &directory, const std::string &command,
+                    const std::string &extra = "");
     void setRecent(const std::string &cmd_index = "");
     void runRecent();
     void setCommand();
     void search();
     Json::Value showRecord(const bool &show = true);
-    void runPoint(const std::string &cmd_index = "", const std::string &extra = "");
+    void runPoint(const std::string &cmd_index = "",
+                  const std::string &extra = "");
     void selectRun(const std::string &cmd_index = "",
                    const bool set_recent = true, const bool show = true,
                    const std::string &extra = "",
                    bool allow_recent_fallback = true);
-    bool parseIndex(const std::string &index_str,
-                    const Json::Value &paths,
-                    std::string &directory,
-                    int &cmd_idx);
+    bool parseIndex(const std::string &index_str, const Json::Value &paths,
+                    std::string &directory, int &cmd_idx);
 
     void parseRun(const ParseArgs &args_struct);
 

@@ -117,8 +117,8 @@ public:
     void setCommandAlias(const std::string &dir, int cmdIndex,
                          const std::string &alias);
     std::string getEffectiveCommand(const std::string &dir, int cmdIndex);
-//    std::pair<std::string, std::string> getCommandIndexFromAlias(
-//        const std::string &alias);
+    //    std::pair<std::string, std::string> getCommandIndexFromAlias(
+    //        const std::string &alias);
 
     // ========== 新增：命令哈希管理 ==========
     std::string computeHash(const std::string &text);
