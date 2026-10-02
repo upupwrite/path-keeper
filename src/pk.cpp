@@ -88,6 +88,64 @@ PathKeeper::PathKeeper()
     file.load_key_order();
 }
 
+// 调用 Rust 编辑器，把返回的 JSON 转义内容解析成非空命令行列表。
+// 出错时返回空 vector。
+std::vector<std::string> PathKeeper::runEditorForCommands()
+{
+    std::vector<std::string> result;
+
+    char *raw = editor_run_and_get_json();
+    if (raw == nullptr)
+    {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("addRecord",
+                                                 "编辑器启动失败!")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return result;
+    }
+
+    std::string escaped(raw);
+    editor_free_string(raw);
+
+    std::string doc = "{\"content\": \"" + escaped + "\"}";
+
+    Json::Value root;
+    Json::CharReaderBuilder builder;
+    std::string errs;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    if (!reader->parse(doc.data(), doc.data() + doc.size(), &root, &errs))
+    {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("addRecord",
+                                                 "无法解析编辑器输出: ")
+                         .toStdString()
+                  << errs << Colors::RESET << std::endl;
+        return result;
+    }
+
+    std::string content = root["content"].asString();
+
+    std::stringstream ss(content);
+    std::string line;
+    while (std::getline(ss, line))
+    {
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+
+        const auto first = line.find_first_not_of(" \t");
+        if (first == std::string::npos)
+            continue;
+        const auto last = line.find_last_not_of(" \t");
+        line = line.substr(first, last - first + 1);
+
+        result.push_back(std::move(line));
+    }
+
+    return result;
+}
+
+
 void PathKeeper::addRecord(bool use_editor)
 {
     Json::Value config = file.loadConfig();

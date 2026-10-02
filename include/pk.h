@@ -39,6 +39,7 @@
 
 #include "loadfile.h"
 #include "terminal.h"
+#include "editor.h"
 
 struct ParseArgs
 {

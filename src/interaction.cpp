@@ -85,7 +85,7 @@ void Interaction::main(int argc, char **argv)
 
         std::string option = argv[1];
 
-        if (arg == "add" || arg == "-a" || arg == "--add")
+        if (option == "add" || option == "-a" || option == "--add")
         {
             bool use_editor = false;
             // 扫描剩余参数里是否出现 --edit / -E；顺手把目录以外的位置参数吃掉
