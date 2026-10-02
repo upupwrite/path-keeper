@@ -28,5 +28,6 @@ public:
     Shell();
     std::string cwd;
     void shellCommand(const std::string &command, const std::string &dir,
-                      const bool record = false, const bool self = false);
+                      const bool record = false, const bool self = false,
+                      const bool non_shell = false);
 };

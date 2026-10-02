@@ -1,0 +1,42 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "name": "Remini"
+        }
+    ],
+    "settings": {
+        "cmake": {
+            "build_folder": "$folder/build"
+        }
+    },
+    "build_systems": [
+        {
+            "name": "CMake Project",
+            "working_dir": "$project_path",
+            "shell": true,
+            "variants": [
+                {
+                    "name": "Build",
+                    "shell_cmd": "cmake -S . -B build && cmake --build build"
+                },
+                {
+                    "name": "Build & Run",
+                    "shell_cmd": "cmake --build build && ./build/pk"
+                },
+                {
+                    "name":"Generate",
+                    "shell_cmd":"cmake -S . -B build -G Ninja"
+                },
+                {
+                    "name": "Run",
+                    "shell_cmd": "./build/Remini"
+                },
+                {
+                    "name": "Test",
+                    "shell_cmd": "ctest --test-dir build --output-on-failure"
+                }
+            ]
+        }
+    ]
+}

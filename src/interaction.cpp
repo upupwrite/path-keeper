@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "colors.h"
 #include "info.h"
@@ -36,6 +37,45 @@ void Interaction::main(int argc, char **argv)
 {
     try
     {
+        // ------------------------------------------------------------------
+        // Pre-process argv to extract the global PTY toggle flags.
+        //
+        //   --pty  / -P : run commands inside an in-process PTY (default)
+        //   --no-pty / -N : run commands via the legacy external shell
+        //
+        // These flags are stripped before any other argument parsing so they
+        // don't interfere with command-specific options or extra arguments.
+        // The chosen value is stored in `pk.use_pty` and consumed by
+        // PathKeeper::runCommand() on every execution path.
+        // ------------------------------------------------------------------
+        std::vector<std::string> arg_storage;
+        arg_storage.reserve(static_cast<size_t>(argc));
+        for (int i = 0; i < argc; ++i)
+        {
+            std::string a = argv[i];
+            if (a == "--pty" || a == "-P")
+            {
+                pk.use_pty = true;
+            }
+            else if (a == "--no-pty" || a == "-N")
+            {
+                pk.use_pty = false;
+            }
+            else
+            {
+                arg_storage.push_back(a);
+            }
+        }
+        std::vector<char *> filtered_argv;
+        filtered_argv.reserve(arg_storage.size());
+        for (auto &s : arg_storage)
+        {
+            filtered_argv.push_back(const_cast<char *>(s.c_str()));
+        }
+        argc = static_cast<int>(filtered_argv.size());
+        argv = filtered_argv.data();
+        // ------------------------------------------------------------------
+
         if (argc == 1)
         {
             dir();
@@ -322,7 +362,8 @@ void Interaction::main(int argc, char **argv)
             }
             else
             {
-                // Not enough arguments – show log file
+                // Not enough arguments – show log file.
+                // Unchanged: handled by the external shell, NOT the PTY path.
                 shell.shellCommand("less .pk.log", "~", false, true);
             }
         }
@@ -393,6 +434,8 @@ void Interaction::main(int argc, char **argv)
                 {
                     std::string configCommand =
                         editor.getEditor() + " " + Achieve::CONFIG_FILE;
+                    // Unchanged: handled by the external shell,
+                    // NOT the PTY path.
                     shell.shellCommand(configCommand, "~", false, true);
                     return;
                 }
@@ -453,6 +496,7 @@ void Interaction::main(int argc, char **argv)
             {
                 pk.installAliases();
             }
+
             else
             {
                 std::cerr << QCoreApplication::translate(
@@ -476,7 +520,8 @@ void Interaction::main(int argc, char **argv)
                       << option << Colors::RESET << std::endl;
             std::cerr << QCoreApplication::translate("Interaction", "Usage")
                              .toStdString()
-                      << ": pk [-a | -s | -p "
+                      << ": pk [-P|--pty] [-N|--no-pty] "
+                         "[-a | -s | -p "
                          "| -c | -e "
                          "[index]]"
                       << std::endl
