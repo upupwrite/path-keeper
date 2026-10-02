@@ -118,6 +118,7 @@ set(HEADERS
     include/search.h
     include/terminal.h
     include/log.h
+    rust/editor/include/editor.h
 )
 
 # 查找 jsoncpp
@@ -181,6 +182,7 @@ target_include_directories(pk PRIVATE
     ${JSONCPP_INCLUDE_DIRS}
     ${READLINE_INCLUDE_DIRS}
     include
+    ${CMAKE_CURRENT_SOURCE_DIR}/rust/editor/include
 )
 target_compile_options(pk PRIVATE ${READLINE_CFLAGS_OTHER})
 
