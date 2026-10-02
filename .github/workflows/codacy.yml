@@ -84,6 +84,15 @@ jobs:
           fi
           echo "sarif_valid=$sarif_valid" >> $GITHUB_OUTPUT
 
+      # Assign a unique category to each SARIF run.
+      # GitHub Code Scanning no longer accepts multiple runs with the same category
+      # in a single SARIF file. This step sets a unique automationDetails.id for each run.
+      - name: Assign unique category to each SARIF run
+        if: steps.validate-sarif.outputs.sarif_valid == 'true'
+        run: |
+          jq '.runs |= (to_entries | map(.value + {automationDetails: ((.value.automationDetails // {}) + {id: ("codacy-" + (.key|tostring))})}))' results.sarif > results.unique.sarif
+          mv results.unique.sarif results.sarif
+
       # Upload the SARIF file to GitHub code scanning only if it was validated
       - name: Upload SARIF results file
         if: steps.validate-sarif.outputs.sarif_valid == 'true'
