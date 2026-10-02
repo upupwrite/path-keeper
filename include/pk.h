@@ -93,4 +93,5 @@ public:
     void installAliases();
 
     std::string cwd;
+    bool use_pty = false;
 };

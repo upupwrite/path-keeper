@@ -313,7 +313,8 @@ void PathKeeper::runCommand(const std::string &directory,
                                                          "(录制中): ")
                                  .toStdString()
                           << full_command << Colors::RESET << std::endl;
-                shell.shellCommand(full_command, directory, true);
+                shell.shellCommand(full_command, directory, true, false,
+                                   use_pty);
             }
             else
             {
@@ -322,7 +323,8 @@ void PathKeeper::runCommand(const std::string &directory,
                                                          "执行命令: ")
                                  .toStdString()
                           << full_command << Colors::RESET << std::endl;
-                shell.shellCommand(full_command, directory);
+                shell.shellCommand(full_command, directory, true, false,
+                                   use_pty);
             }
         }
         else
@@ -331,7 +333,7 @@ void PathKeeper::runCommand(const std::string &directory,
                       << QCoreApplication::translate("runCommand", "执行命令: ")
                              .toStdString()
                       << full_command << Colors::RESET << std::endl;
-            shell.shellCommand(full_command, directory);
+            shell.shellCommand(full_command, directory, true, false, use_pty);
         }
     }
     else
