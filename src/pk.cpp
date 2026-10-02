@@ -88,7 +88,7 @@ PathKeeper::PathKeeper()
     file.load_key_order();
 }
 
-void PathKeeper::addRecord()
+void PathKeeper::addRecord(bool use_editor)
 {
     Json::Value config = file.loadConfig();
     static bool initialized = false;
@@ -98,6 +98,7 @@ void PathKeeper::addRecord()
         initialized = true;
     }
 
+    // ---- 1. 目录提示（两种模式共用） ---------------------------------
     std::string directory = ReadlineHelper::read_line(
         Colors::CYAN +
         QCoreApplication::translate("addRecord", "请输入记录目录:")
@@ -116,7 +117,7 @@ void PathKeeper::addRecord()
     // 归一化为绝对路径（统一格式）
     directory = normalizePath(directory, cwd);
 
-    // 检查配置中是否已有该目录
+    // 若该目录下已有记录，先展示一遍，方便用户参考
     Json::Value commands = Json::arrayValue;
     if (config["path"].isMember(directory))
     {
@@ -125,30 +126,66 @@ void PathKeeper::addRecord()
         displayCommands(commands);
     }
 
-    std::string cmd = ReadlineHelper::read_line(
-        Colors::CYAN +
-        QCoreApplication::translate("addRecord", "请输入命令:").toStdString() +
-        Colors::RESET);
-
-    if (cmd.empty() && commands.empty())
+    // ---- 2. 收集新命令 -----------------------------------------------
+    if (use_editor)
     {
-        std::string default_command = "ls -l";
-        std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ")
+        // --edit：交给 Rust 编辑器，返回的每一行作为一条独立命令。
+        std::vector<std::string> lines = runEditorForCommands();
+        if (lines.empty())
+        {
+            std::cerr << Colors::YELLOW
+                      << QCoreApplication::translate(
+                             "addRecord", "编辑器未返回任何命令,已取消!")
+                             .toStdString()
+                      << Colors::RESET << std::endl;
+            return;
+        }
+
+        for (const auto &line : lines)
+        {
+            Json::Value newCmd;
+            newCmd["cmd"]  = line;
+            newCmd["hash"] = file.computeHash(directory + line);
+            commands.append(newCmd);
+        }
+
+        std::cerr << Colors::GREEN
+                  << QCoreApplication::translate("addRecord", "从编辑器读取到 ")
                          .toStdString()
-                  << default_command << std::endl;
-        Json::Value newCmd;
-        newCmd["cmd"] = default_command;
-        newCmd["hash"] = file.computeHash(directory + default_command);
-        commands.append(newCmd);
+                  << lines.size()
+                  << QCoreApplication::translate("addRecord", " 条命令")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
     }
-    else if (!cmd.empty())
+    else
     {
-        Json::Value newCmd;
-        newCmd["cmd"] = cmd;
-        newCmd["hash"] = file.computeHash(directory + cmd);
-        commands.append(newCmd);
+        // 原有 readline 行为不变
+        std::string cmd = ReadlineHelper::read_line(
+            Colors::CYAN +
+            QCoreApplication::translate("addRecord", "请输入命令:").toStdString() +
+            Colors::RESET);
+
+        if (cmd.empty() && commands.empty())
+        {
+            std::string default_command = "ls -l";
+            std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ")
+                             .toStdString()
+                      << default_command << std::endl;
+            Json::Value newCmd;
+            newCmd["cmd"]  = default_command;
+            newCmd["hash"] = file.computeHash(directory + default_command);
+            commands.append(newCmd);
+        }
+        else if (!cmd.empty())
+        {
+            Json::Value newCmd;
+            newCmd["cmd"]  = cmd;
+            newCmd["hash"] = file.computeHash(directory + cmd);
+            commands.append(newCmd);
+        }
     }
 
+    // ---- 3. 写回配置 -------------------------------------------------
     config["path"][directory] = commands;
     file.saveConfig(config);
 

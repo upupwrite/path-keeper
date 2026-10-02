@@ -15,6 +15,76 @@
 cmake_minimum_required(VERSION 3.10)
 project(path-keeper VERSION 1.0.1)
 
+
+# ======================================================================
+# Rust editor library
+# ======================================================================
+
+find_program(CARGO_EXECUTABLE cargo REQUIRED)
+
+set(RUST_EDITOR_DIR      "${CMAKE_CURRENT_SOURCE_DIR}/rust/editor")
+set(RUST_EDITOR_TARGET   "${CMAKE_CURRENT_BINARY_DIR}/rust-editor")
+set(RUST_EDITOR_LIB      "${RUST_EDITOR_TARGET}/release/libeditor.a")
+
+# Cargo profile: build Debug when CMAKE_BUILD_TYPE is Debug, else Release.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(RUST_EDITOR_PROFILE "debug")
+    set(RUST_EDITOR_CARGO_ARGS "")
+else()
+    set(RUST_EDITOR_PROFILE "release")
+    set(RUST_EDITOR_CARGO_ARGS "--release")
+endif()
+
+# Re-run cargo whenever any source or manifest changes. The glob is expanded
+# at configure time; adding new .rs files requires re-running cmake (which is
+# normal CMake behaviour).
+file(GLOB_RECURSE RUST_EDITOR_SOURCES CONFIGURE_DEPENDS
+    "${RUST_EDITOR_DIR}/src/*.rs"
+)
+
+add_custom_command(
+    OUTPUT  "${RUST_EDITOR_LIB}"
+    COMMAND "${CMAKE_COMMAND}" -E env
+            "CARGO_TARGET_DIR=${RUST_EDITOR_TARGET}"
+            "${CARGO_EXECUTABLE}" build ${RUST_EDITOR_CARGO_ARGS}
+            --manifest-path "${RUST_EDITOR_DIR}/Cargo.toml"
+    DEPENDS
+        "${RUST_EDITOR_DIR}/Cargo.toml"
+        "${RUST_EDITOR_DIR}/Cargo.lock"
+        ${RUST_EDITOR_SOURCES}
+    WORKING_DIRECTORY "${RUST_EDITOR_DIR}"
+    COMMENT "Building Rust editor library (${RUST_EDITOR_PROFILE})"
+    VERBATIM
+)
+
+add_custom_target(editor_rust_build DEPENDS "${RUST_EDITOR_LIB}")
+
+# Wrap the .a in an INTERFACE-style imported target so we can link against it
+# with target_link_libraries() just like any other library.
+add_library(editor_rust STATIC IMPORTED GLOBAL)
+add_dependencies(editor_rust editor_rust_build)
+set_target_properties(editor_rust PROPERTIES
+    IMPORTED_LOCATION "${RUST_EDITOR_LIB}"
+)
+
+# Rust std needs these on Linux/macOS. On Windows MSVC the equivalent set is
+# ws2_32, userenv, bcrypt, ntdll — added conditionally below.
+if(WIN32)
+    set(RUST_EDITOR_SYSTEM_LIBS ws2_32 userenv bcrypt ntdll)
+else()
+    set(RUST_EDITOR_SYSTEM_LIBS pthread dl m)
+    find_library(CORE_FOUNDATION_LIBRARY CoreFoundation)
+    if(APPLE AND CORE_FOUNDATION_LIBRARY)
+        list(APPEND RUST_EDITOR_SYSTEM_LIBS ${CORE_FOUNDATION_LIBRARY})
+    endif()
+endif()
+
+target_link_libraries(editor_rust INTERFACE ${RUST_EDITOR_SYSTEM_LIBS})
+
+# ======================================================================
+# end Rust editor library
+# ======================================================================
+
 # 默认使用 Release 构建类型（若未指定）
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type (e.g. Debug, Release)" FORCE)
@@ -99,6 +169,7 @@ add_executable(pk ${SOURCES} ${HEADERS})
 
 # 链接必要的库：jsoncpp, readline, Qt Core 和 pthread
 target_link_libraries(pk PRIVATE
+    editor_rust
     ${JSONCPP_LIBRARIES}
     ${READLINE_LIBRARIES}
     ${QT_CORE_LIBRARY}
@@ -155,4 +226,13 @@ if(UNIX)
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_INSTALL_PREFIX}/share/path-keeper/translations
         COMMENT "Uninstalling path-keeper (binary and translations)"
     )
+endif()
+
+# Clean up the cargo target directory on uninstall.
+if(UNIX)
+    add_custom_target(uninstall_rust
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${RUST_EDITOR_TARGET}"
+        COMMENT "Removing Rust editor build directory"
+    )
+    add_dependencies(uninstall uninstall_rust)
 endif()

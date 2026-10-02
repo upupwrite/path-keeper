@@ -65,10 +65,13 @@ private:
 
     void saveRecentRecord(Json::Value &config, const std::string &directory,
                           int cmd_idx);
+    // 调用 Rust 编辑器，把返回的 JSON 转义内容解析成非空命令行列表。
+    // 出错时返回空 vector。
+    std::vector<std::string> runEditorForCommands();
 
 public:
     PathKeeper();
-    void addRecord();
+    void addRecord(bool use_editor = false);
     void runCommand(const std::string &directory, const std::string &command,
                     const std::string &extra = "");
     void setRecent(const std::string &cmd_index = "");

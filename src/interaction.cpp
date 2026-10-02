@@ -85,11 +85,27 @@ void Interaction::main(int argc, char **argv)
 
         std::string option = argv[1];
 
-        if (option == "-a" || option == "--add")
+        if (arg == "add" || arg == "-a" || arg == "--add")
         {
-            dir();
-            pk.addRecord();
+            bool use_editor = false;
+            // 扫描剩余参数里是否出现 --edit / -E；顺手把目录以外的位置参数吃掉
+            std::vector<std::string> positional;
+            for (int i = 2; i < argc; ++i)
+            {
+                std::string a = argv[i];
+                if (a == "--edit" || a == "-E")
+                {
+                    use_editor = true;
+                }
+                else
+                {
+                    positional.push_back(a);
+                }
+            }
+            // 如果原来支持 pk add <directory> 这种位置参数，在这里把 positional[0]
+            pk.addRecord(use_editor);
         }
+
         else if (option == "-s" || option == "--show")
         {
             dir();
