@@ -196,13 +196,19 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
                          const bool record, const bool self,
                          const bool non_shell)
 {
+    // 用子 shell 包裹命令，保证：
+    //   * 编辑器返回的多行命令整体都在 dir 中执行；
+    //   * cd 失败时整块命令不再执行，避免在错误目录下运行后续行。
+    const std::string wrapped_command =
+        "cd " + dir + " && (\n" + command + "\n)";
+
     // ======================= In-process execution =======================
     // non_shell == true: bypass tmux / external shell entirely and run the
     // command directly through a PTY in the current process. No tmux check
     // is performed and output is streamed in real time with true color.
     if (non_shell)
     {
-        const std::string exec_command = "cd " + dir + " && " + command;
+        const std::string exec_command = wrapped_command;
         const std::string log_prefix = "[" + log.timestamp() + "]\n" +
                                        "DIR: " + dir + "\n" +
                                        "COMMAND: " + command + "\n";
@@ -230,12 +236,12 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
 
     if (std::empty(shell))
     {
-        shell_command = "cd " + dir + " && " + command + " ; cd " + cwd;
+        shell_command = wrapped_command + " ; cd " + cwd;
     }
     else
     {
-        shell_command = shell + " <<EOF\n" + "cd " + dir + " && " + command +
-                        " ; cd " + cwd + "\nEOF";
+        shell_command = shell + " <<EOF\n" + wrapped_command + " ; cd " +
+                        cwd + "\nEOF";
     }
 
     if (!self && !std::empty(shell_command))

@@ -88,12 +88,10 @@ PathKeeper::PathKeeper()
     file.load_key_order();
 }
 
-// 调用 Rust 编辑器，把返回的 JSON 转义内容解析成非空命令行列表。
-// 出错时返回空 vector。
-std::vector<std::string> PathKeeper::runEditorForCommands()
+// 调用 Rust 编辑器，返回编辑器缓冲区中的原始内容（可能含多行）。
+// 出错时返回空字符串。
+std::string PathKeeper::runEditorForCommands()
 {
-    std::vector<std::string> result;
-
     char *raw = editor_run_and_get_json();
     if (raw == nullptr)
     {
@@ -102,12 +100,13 @@ std::vector<std::string> PathKeeper::runEditorForCommands()
                                                  "编辑器启动失败!")
                          .toStdString()
                   << Colors::RESET << std::endl;
-        return result;
+        return std::string();
     }
 
     std::string escaped(raw);
     editor_free_string(raw);
 
+    // escaped 是 JSON 转义串，包成 {"content": "..."} 再解析即可还原原始文本
     std::string doc = "{\"content\": \"" + escaped + "\"}";
 
     Json::Value root;
@@ -121,28 +120,10 @@ std::vector<std::string> PathKeeper::runEditorForCommands()
                                                  "无法解析编辑器输出: ")
                          .toStdString()
                   << errs << Colors::RESET << std::endl;
-        return result;
+        return std::string();
     }
 
-    std::string content = root["content"].asString();
-
-    std::stringstream ss(content);
-    std::string line;
-    while (std::getline(ss, line))
-    {
-        if (!line.empty() && line.back() == '\r')
-            line.pop_back();
-
-        const auto first = line.find_first_not_of(" \t");
-        if (first == std::string::npos)
-            continue;
-        const auto last = line.find_last_not_of(" \t");
-        line = line.substr(first, last - first + 1);
-
-        result.push_back(std::move(line));
-    }
-
-    return result;
+    return root["content"].asString();
 }
 
 
@@ -187,31 +168,26 @@ void PathKeeper::addRecord(bool use_editor)
     // ---- 2. 收集新命令 -----------------------------------------------
     if (use_editor)
     {
-        // --edit：交给 Rust 编辑器，返回的每一行作为一条独立命令。
-        std::vector<std::string> lines = runEditorForCommands();
-        if (lines.empty())
+        // --edit：把编辑器整个缓冲区内容作为一条命令写入
+        std::string content = runEditorForCommands();
+        if (content.empty())
         {
             std::cerr << Colors::YELLOW
                       << QCoreApplication::translate(
-                             "addRecord", "编辑器未返回任何命令,已取消!")
+                             "addRecord", "编辑器未返回任何内容,已取消!")
                              .toStdString()
                       << Colors::RESET << std::endl;
             return;
         }
 
-        for (const auto &line : lines)
-        {
-            Json::Value newCmd;
-            newCmd["cmd"]  = line;
-            newCmd["hash"] = file.computeHash(directory + line);
-            commands.append(newCmd);
-        }
+        Json::Value newCmd;
+        newCmd["cmd"]  = content;
+        newCmd["hash"] = file.computeHash(directory + content);
+        commands.append(newCmd);
 
         std::cerr << Colors::GREEN
-                  << QCoreApplication::translate("addRecord", "从编辑器读取到 ")
-                         .toStdString()
-                  << lines.size()
-                  << QCoreApplication::translate("addRecord", " 条命令")
+                  << QCoreApplication::translate("addRecord",
+                                                 "已从编辑器读取内容")
                          .toStdString()
                   << Colors::RESET << std::endl;
     }
