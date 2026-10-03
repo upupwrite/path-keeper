@@ -1,42 +1,41 @@
-P(ath) K(eeper) Command-Line Tool - A Multi-Functional Command-Line Utility
+# P(ath) K(eeper) Command-Line Tool - A Multi-Functional Command-Line Utility
 
-Project Overview
+## Project Overview
 
 Path-keeper is a powerful command-line tool designed for easily managing, organizing, and executing frequently used commands. It features multi-level categorization, execution logging, shell aliases, and rich customization options.
 
-Key Improvements
+### Key Improvements
 
 This version includes important bug fixes and new features:
+- Fixed missing method implementations
+- Resolved shell script integration issues
+- Improved error handling and argument passing
+- Enhanced interactive command detection
+- Stabilized editor mode and multi-line support
 
-· Fixed missing method implementations
-· Resolved shell script integration issues
-· Improved error handling and argument passing
-· Enhanced interactive command detection
-· Stabilized editor mode and multi-line support
+## Features
 
-Features
+- Command Recording: Add, view, and execute command history
+- Multi-Level Categorization: Supports command categorization (e.g., 1.2 represents the second command under the first category)
+- Configuration Management: Configurable default execution shell and editor
+- Recent Command Execution: Quickly re-run recently executed commands
+- Shell Integration: Seamless integration with bash/zsh, with automatic detection of interactive programs
+- Execution Logging: Optionally record timestamped logs with output capture for each command
+- Interactive Search: Fuzzy-find command selection using fzf
+- Hash Verification: Verify command integrity and detect configuration tampering
+- Shell Aliases: Create convenient shell aliases for frequently used command indices
+- Multi-Line Commands: Support editor-based multi-line command input
+- Flexible Log Control: Per-command log setting overrides, with global default support
+- Dependencies: fzf and tmux (required for search and command logging features)
 
-· Command Recording: Add, view, and execute command history
-· Multi-Level Categorization: Supports command categorization (e.g., 1.2 represents the second command under the first category)
-· Configuration Management: Configurable default execution shell and editor
-· Recent Command Execution: Quickly re-run recently executed commands
-· Shell Integration: Seamless integration with bash/zsh, with automatic detection of interactive programs
-· Execution Logging: Optionally record timestamped logs with output capture for each command
-· Interactive Search: Fuzzy-find command selection using fzf
-· Hash Verification: Verify command integrity and detect configuration tampering
-· Shell Aliases: Create convenient shell aliases for frequently used command indices
-· Multi-Line Commands: Support editor-based multi-line command input
-· Flexible Log Control: Per-command log setting overrides, with global default support
-· Dependencies: fzf and tmux (required for search and command logging features)
+## Usage Tips
 
-Usage Tips
-
-1. Quick Execution: Use the -p flag to execute a command without updating the recent record
+1. Quick Execution: Use the `-p` flag to execute a command without updating the recent record
 2. Category Management: Categorize commands sensibly when adding them for easier retrieval later
 3. Multi-Line Commands: When adding a command, press Enter without typing anything to enter editor mode
 4. Shell Integration: Source the pk.sh script in your shell to ensure proper command execution and terminal handling
 
-Example Workflow
+## Example Workflow
 
 ```bash
 # View the current directory and run the most recent command (if set)
@@ -61,9 +60,9 @@ pk -p 1
 pk -c
 ```
 
-Command Reference
+## Command Reference
 
-Main Options
+### Main Options
 
 ```
 -a, --add           Add a new command record (single-line or multi-line editor mode)
@@ -77,7 +76,7 @@ Main Options
 -h, --help          Show detailed help information
 ```
 
-Subcommands
+### Subcommands
 
 ```
 Configuration Management:
@@ -96,7 +95,7 @@ Advanced Features:
   log                        List and view log files
 ```
 
-Per-Command Log Control
+## Per-Command Log Control
 
 When adding a command, you can choose the logging behavior:
 
@@ -106,14 +105,14 @@ n (force no log):     Never log command output
 empty/Enter:          Use the global log.enabled setting
 ```
 
-Shell Integration
+## Shell Integration
 
 The pk.sh script provides the following features:
 
-· Automatic stdout/stderr handling: Properly captures and executes command output
-· Interactive program detection: Automatically detects vim, nano, emacs, less, more, htop, man
-· Robust command extraction: Handles log-wrapped commands and removes debug output
-· Terminal compatibility: Supports bash, zsh, dash, ksh, and fish
+- Automatic stdout/stderr handling: Properly captures and executes command output
+- Interactive program detection: Automatically detects vim, nano, emacs, less, more, htop, man
+- Robust command extraction: Handles log-wrapped commands and removes debug output
+- Terminal compatibility: Supports bash, zsh, dash, ksh, and fish
 
 Enable shell integration by sourcing pk.sh in your shell configuration file:
 
@@ -121,9 +120,9 @@ Enable shell integration by sourcing pk.sh in your shell configuration file:
 source /usr/local/share/path-keeper/pk.sh
 ```
 
-Installation Instructions
+## Installation Instructions
 
-Dependencies
+### Dependencies
 
 ```bash
 # Ubuntu/Debian:
@@ -139,17 +138,15 @@ sudo yum install qt5-devel
 sudo dnf install cmake pkgconfig jsoncpp-devel gcc-c++
 sudo dnf install qt5-devel
 ```
-
-[!TIP]
-This program requires fzf and tmux. To record output, it should be executed within a tmux session.
+> [!TIP]
+> This program requires fzf and tmux. To record output, it should be executed within a tmux session.
 
 Install fzf and tmux:
-
 ```bash
 sudo apt install fzf tmux
 ```
 
-Build and Install
+### Build and Install
 
 Clone the repository and build:
 
@@ -173,7 +170,7 @@ Enable shell integration by adding to ~/.bashrc or ~/.zshrc:
 source /usr/local/share/path-keeper/pk.sh
 ```
 
-Security Features
+## Security Features
 
 Hash Verification:
 
@@ -186,19 +183,19 @@ pk rehash              # Regenerate hash values after manual editing
 
 Log File Management:
 
-· Timestamped log entries providing an audit trail
-· Per-command execution tracking
+- Timestamped log entries providing an audit trail
+- Per-command execution tracking
 
-Internationalization
+## Internationalization
 
 Path-keeper supports multiple languages through Qt translations:
 
-· English (en)
-· Simplified Chinese (zh_CN)
+- English (en)
+- Simplified Chinese (zh_CN)
 
 The application automatically detects the system locale and loads the corresponding translation.
 
-Testing
+## Testing
 
 Build and run tests (if available):
 
@@ -209,7 +206,7 @@ make
 ctest
 ```
 
-Uninstallation
+## Uninstallation
 
 Run from the build directory:
 
@@ -230,7 +227,7 @@ Or manually remove installed files:
 sudo rm /usr/local/bin/pk
 ```
 
-Troubleshooting
+## Troubleshooting
 
 Issue: "pk: binary not found"
 Solution: Ensure /usr/local/bin is in your PATH
@@ -272,7 +269,7 @@ mkdir -p ~/.pk_logs
 chmod 700 ~/.pk_logs
 ```
 
-Notes
+## Notes
 
 1. Command records are stored in a local file (~/.pk.json). Remember to back up important records.
 2. When using the -e flag, ensure the index is valid.
@@ -281,7 +278,7 @@ Notes
 5. Shell variables and aliases can be used in recorded commands.
 6. Environment variables are inherited from the directory specified in the record.
 
-Advanced Features
+## Advanced Features
 
 Search and Filter:
 
@@ -299,11 +296,11 @@ List and view execution logs:
 pk log                 # Display available log files
 ```
 
-Contribution Guidelines
+## Contribution Guidelines
 
 Contributions and suggestions for improvement are welcome! Please follow open-source community guidelines and submit a PR or Issue.
 
-Open Source License
+## Open Source License
 
 This project follows an open-source license. For details, please refer to the LICENSE file in the project root directory.
 
@@ -313,7 +310,7 @@ For details, please refer to the LICENSE file in the project root directory.
 
 More information about GPLv3: https://www.gnu.org/licenses/gpl-3.0.html
 
-Support and More Information
+## Support and More Information
 
 For more details about the code, you can refer to the source code of the corresponding modules.
 
