@@ -28,62 +28,71 @@ _pk_binary() {
 
 # pk() is a shell wrapper around the `pk` binary.
 #
-# Default behavior (use_pty = false in the binary):
-#   The binary prints a shell command on stdout, which this wrapper
-#   eval's in the parent shell. This preserves the legacy tmux / logging
-#   / cd semantics.
+# Two execution modes exist in the binary:
 #
-# Opt-in PTY behavior:
-#   With --pty / -P the binary runs the command itself inside an
-#   in-process PTY and streams output directly -- eval is NOT used,
-#   because stdout already contains the real command output (or, for
-#   bare `pk log` / `pk config`, the wrapper still eval's the printed
-#   command so less / the editor runs on the user's terminal).
+#   Legacy mode (default, use_pty = false):
+#     For commands that emit a shell script on stdout (`pk -e`, `pk -p`,
+#     bare `pk`, `pk -c`), this wrapper captures stdout and eval's it in
+#     the parent shell. This preserves the `cd <dir>`, tmux pipe-pane and
+#     logging semantics -- the script *must* run in the parent shell, not
+#     in a subshell, for `cd` and `tmux pipe-pane` to have any effect.
+#
+#   PTY mode (--pty / -P):
+#     The binary executes the command itself inside an in-process PTY and
+#     streams output directly. stdout is the real command output, so eval
+#     must NOT be used here.
+#
+# Pure-interactive commands (`-a`, `--add`, `add`, `search`) never emit a
+# script; they only prompt the user and write status to stderr. They are
+# forwarded directly so no extra subshell is spawned. Note that `-e`, `-p`
+# and `-c` are interactive too, but their stdout DOES carry the shell
+# script, so they must go through the eval path.
 #
 pk() {
-    # Decide whether stdout should be eval'd.
-    #
-    #   need_eval = 1 (default)  -> legacy: capture stdout, eval it
-    #   need_eval = 0            -> PTY: pass output straight through
-    local need_eval=1
-
-    # Scan for PTY toggle flags. If both appear, the last one wins,
-    # mirroring how the binary resolves them.
+    # ------------------------------------------------------------------
+    # 1. Detect PTY mode. Last flag wins, mirroring the binary's logic.
+    # ------------------------------------------------------------------
+    local use_pty=0
     local a
     for a in "$@"; do
         case "$a" in
-            --pty|-P)    need_eval=0 ;;
-            --no-pty|-N) need_eval=1 ;;
+            --pty|-P)    use_pty=1 ;;
+            --no-pty|-N) use_pty=0 ;;
         esac
     done
 
-    # Bare `log` / `config` (no further arguments) always rely on the
-    # external shell (less / the configured editor), so they need eval
-    # even when the user passed --pty.
-    if [ "$need_eval" -eq 0 ]; then
-        case "${1:-}" in
-            log|config)
-                [ "$#" -eq 1 ] && need_eval=1
-                ;;
-        esac
+    # PTY mode: the binary streams real output. Just forward.
+    if [ "$use_pty" -eq 1 ]; then
+        _pk_binary "$@"
+        return $?
     fi
 
-    if [ "$need_eval" -eq 1 ]; then
-        # Legacy path: capture stdout, then eval it in the parent shell.
-        local cmd_output ret
-        cmd_output=$(_pk_binary "$@")
+    # ------------------------------------------------------------------
+    # 2. Pure-interactive commands: forward directly, no eval.
+    #
+    #    Only these qualify -- they never print a shell script to stdout.
+    # ------------------------------------------------------------------
+    case "${1:-}" in
+        -a|--add|add|search)
+            _pk_binary "$@"
+            return $?
+            ;;
+    esac
+
+    # ------------------------------------------------------------------
+    # 3. Legacy path: capture stdout, then eval it in the parent shell.
+    #
+    #    Reached for `pk -e`, `pk -p`, `pk -c`, bare `pk`, `pk log`,
+    #    `pk config`, `pk -s`, `pk alias ...`, etc.
+    # ------------------------------------------------------------------
+    local cmd_output ret
+    cmd_output=$(_pk_binary "$@")
+    ret=$?
+    if [ "$ret" -eq 0 ] && [ -n "$cmd_output" ]; then
+        eval "$cmd_output"
         ret=$?
-        if [ "$ret" -eq 0 ] && [ -n "$cmd_output" ]; then
-            eval "$cmd_output"
-            ret=$?
-        elif [ -n "$cmd_output" ]; then
-            printf '%s\n' "$cmd_output"
-        fi
-        return "$ret"
+    elif [ -n "$cmd_output" ]; then
+        printf '%s\n' "$cmd_output"
     fi
-
-    # PTY path: the binary runs the command in an in-process PTY and
-    # streams output directly. Just forward everything.
-    _pk_binary "$@"
-    return $?
+    return "$ret"
 }

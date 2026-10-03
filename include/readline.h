@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <iostream>
@@ -34,6 +35,39 @@ public:
     // 初始化 readline 设置
     static void initialize()
     {
+        // ------------------------------------------------------------------
+        // 把 readline 的 prompt / 输入绑定到真实终端 (/dev/tty)。
+        //
+        // 默认情况下 readline 把 prompt 输出到 stdout、从 stdin 读取。
+        // 当调用方通过 `$(...)` 或 `> file` 重定向 stdout 时，prompt 会
+        // 被吞掉，程序看起来像"卡死"（实际在等 stdin 输入）。
+        //
+        // 打开 /dev/tty 后：
+        //   * 无论 stdout / stdin 怎样被重定向，prompt 与按键始终面向
+        //     用户所在的真实终端；
+        //   * 仍然保留原有回退：若 /dev/tty 打不开（例如无控制终端），
+        //     退回 stderr（写）/ stdin（读）。
+        //
+        // FILE* 用 static 持有，保证生命周期覆盖整个进程；不主动 fclose，
+        // 由进程退出时回收。
+        // ------------------------------------------------------------------
+        static FILE *tty_out = std::fopen("/dev/tty", "w");
+        if (tty_out)
+        {
+            rl_outstream = tty_out;
+        }
+        else
+        {
+            rl_outstream = stderr;
+        }
+
+        static FILE *tty_in = std::fopen("/dev/tty", "r");
+        if (tty_in)
+        {
+            rl_instream = tty_in;
+        }
+        // 若打开失败，保持 readline 默认 (stdin)
+
         // 设置程序名称（用于 .inputrc 配置）
         rl_readline_name = "PathKeeper";
 

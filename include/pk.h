@@ -90,6 +90,7 @@ public:
                     std::string &directory, int &cmd_idx);
 
     void parseRun(const ParseArgs &args_struct);
+    void runFile();
 
     void addAlias(const std::string &name, const std::string &indexStr);
     void removeAlias(const std::string &name);

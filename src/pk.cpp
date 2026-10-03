@@ -229,6 +229,28 @@ void PathKeeper::addRecord(bool use_editor)
         << Colors::RESET << std::endl;
 }
 
+void PathKeeper::runFile(){
+    std::string directory = ReadlineHelper::read_line(
+    Colors::CYAN +
+    QCoreApplication::translate("addRecord", "请输入运行目录: ")
+        .toStdString() +
+    Colors::RESET);
+
+    if (directory.empty())
+    {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("runFile", "目录为~")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        directory="~";
+    }
+
+    // 归一化为绝对路径（统一格式）
+    directory = normalizePath(directory, cwd);
+    auto command= runEditorForCommands();
+    shell.shellCommand(command,directory,false,true,use_pty);
+}
+
 void PathKeeper::runRecent()
 {
     Json::Value config = file.loadConfig();

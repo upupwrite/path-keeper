@@ -219,6 +219,9 @@ void Interaction::main(int argc, char **argv)
             showHelp();
             return;
         }
+        else if (option=="-r"||option=="--run"||option=="run"){
+            pk.runFile();
+        }
         else if (option == "search")
         {
             pk.search();
