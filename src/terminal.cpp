@@ -87,7 +87,7 @@ static void runInProcess(const std::string &exec_command,
     if (pid == 0)
     {
         // Child: replace the image with /bin/sh -c "<command>".
-        execl("/bin/sh", "sh", "-c", exec_command.c_str(),
+        execl("/bin/bash", "bash", "-c", exec_command.c_str(),
               static_cast<char *>(nullptr));
         _exit(127);
     }

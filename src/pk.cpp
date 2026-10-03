@@ -130,12 +130,6 @@ std::string PathKeeper::runEditorForCommands()
 void PathKeeper::addRecord(bool use_editor)
 {
     Json::Value config = file.loadConfig();
-    static bool initialized = false;
-    if (!initialized)
-    {
-        ReadlineHelper::initialize();
-        initialized = true;
-    }
 
     // ---- 1. 目录提示（两种模式共用） ---------------------------------
     std::string directory = ReadlineHelper::read_line(
@@ -230,6 +224,7 @@ void PathKeeper::addRecord(bool use_editor)
 }
 
 void PathKeeper::runFile(){
+    use_pty=true;
     std::string directory = ReadlineHelper::read_line(
     Colors::CYAN +
     QCoreApplication::translate("addRecord", "请输入运行目录: ")
@@ -416,7 +411,7 @@ void PathKeeper::runCommand(const std::string &directory,
                                                          "执行命令: ")
                                  .toStdString()
                           << full_command << Colors::RESET << std::endl;
-                shell.shellCommand(full_command, directory, true, false,
+                shell.shellCommand(full_command, directory, false, false,
                                    use_pty);
             }
         }
@@ -426,7 +421,7 @@ void PathKeeper::runCommand(const std::string &directory,
                       << QCoreApplication::translate("runCommand", "执行命令: ")
                              .toStdString()
                       << full_command << Colors::RESET << std::endl;
-            shell.shellCommand(full_command, directory, true, false, use_pty);
+            shell.shellCommand(full_command, directory, false, false, use_pty);
         }
     }
     else

@@ -555,7 +555,7 @@ void File::setGlobalLogEnabled(bool enabled)
     saveConfig(config);
 }
 
-// 获取指定命令的日志开关（若命令单独定义则返回命令的log，否则返回全局log）
+// 获取指定命令的日志开关（若命令单独定义则返回命令的log，否则返回false）
 bool File::isCommandLogEnabled(const std::string &dir, int cmdIndex)
 {
     try
@@ -571,7 +571,7 @@ bool File::isCommandLogEnabled(const std::string &dir, int cmdIndex)
     }
     catch (...)
     {
-        return isGlobalLogEnabled();  // 出错时回退到全局设置
+        return false;  // 出错时回退到全局设置
     }
 }
 

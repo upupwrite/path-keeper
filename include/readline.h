@@ -87,6 +87,12 @@ public:
     // 读取一行输入（带补全）
     static std::string read_line(const std::string &prompt)
     {
+        static bool initialized = false;
+        if (!initialized)
+        {
+            ReadlineHelper::initialize();
+            initialized = true;
+        }
         char *line = readline(prompt.c_str());
         if (!line)
         {
