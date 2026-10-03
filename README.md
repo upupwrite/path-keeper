@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Path-keeper is a powerful command-line tool for managing, organizing, and executing frequently-used commands with ease. It features multi-level categorization, execution logging, shell aliases and integration with a lightweight Rust editor for multi-line commands.
+Path-keeper is a powerful command-line tool for managing, organizing, and executing frequently-used commands with ease. It features multi-level categorization, execution logging, shell aliases and [...]
 
 ### New / Notable Features
 
@@ -34,7 +34,7 @@ These features are implemented in the src/ code (notably src/pk.cpp and src/main
 - Quick Execution: Use `-p` to execute without updating the recent record
 - Alias usage: Create an alias for a frequently used command and then source `~/.pk_aliases.sh` to use `alias_name` directly in your shell to run `pk -e X.Y`.
 - Editor mode: Use `pk -a --edit` (or the corresponding option in your environment) to open the embedded Rust editor. The entire buffer is treated as the command.
-- Run-from-editor: Use the `runFile` or UI flow which will ask for a directory and open the editor; after you save and exit the editor, the resulting content will be executed in the specified directory.
+- Run-from-editor: Use the `runFile` or UI flow which will ask for a directory and open the editor; after you save and exit the editor, the resulting content will be executed in the specified dire[...]
 
 ## Installation & Building
 
@@ -52,13 +52,12 @@ These features are implemented in the src/ code (notably src/pk.cpp and src/main
 ## Notes for packagers and maintainers
 
 - The Rust-based editor API: `editor_run_and_get_json()` is used to launch the editor and return a JSON-escaped string of the buffer. The code wraps that JSON and parses it with JsonCpp.
-- Alias installation writes `~/.pk_aliases.sh` containing shell `alias name='pk -e X.Y'` lines — inform users to source that file in their shell config (e.g. `echo 'source ~/.pk_aliases.sh' >> ~/.bashrc`).
+- Alias installation writes `~/.pk_aliases.sh` containing shell `alias name='pk -e X.Y'` lines — inform users to source that file in their shell config (e.g. `echo 'source ~/.pk_aliases.sh' >> ~[...]
 
 ## Files changed in this documentation update
 
 - README.md (this file): updated to document alias/editor/runFile and i18n notes
 - README.cn.md: updated to include the same new features in Chinese
-- README.jp.md: newly added Japanese README (translation of main points)
 
 ---
 
