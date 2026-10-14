@@ -13,7 +13,13 @@
 // along with Path Keeper. If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
-#include <jsoncpp/json/json.h>
+#if __has_include(<jsoncpp/json/json.h>)
+#  include <jsoncpp/json/json.h>   // Debian / Ubuntu
+#elif __has_include(<json/json.h>)
+#  include <json/json.h>            // Arch Linux
+#else
+#  error "jsoncpp headers not found"
+#endif
 
 #include "loadfile.h"
 #include "log.h"
