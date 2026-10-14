@@ -244,7 +244,7 @@ endif()
 # ======================================================================
 set(CPACK_PACKAGE_NAME "path-keeper")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_CONTACT "Your Name <upupwrite@outlook.com>")
+set(CPACK_PACKAGE_CONTACT "upupwrite <upupwrite@outlook.com>")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 set(CPACK_GENERATOR "DEB")
 
