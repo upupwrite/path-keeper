@@ -13,7 +13,7 @@
 # along with Path Keeper. If not, see <https://www.gnu.org/licenses/>.
 
 cmake_minimum_required(VERSION 3.10)
-project(path-keeper VERSION 1.0.1)
+project(path-keeper VERSION 2.5.4)
 
 
 # ======================================================================
