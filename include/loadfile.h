@@ -15,7 +15,13 @@
 #pragma once
 #include <fcntl.h>
 #include <json/writer.h>
-#include <jsoncpp/json/json.h>
+#if __has_include(<jsoncpp/json/json.h>)
+#  include <jsoncpp/json/json.h>   // Debian / Ubuntu
+#elif __has_include(<json/json.h>)
+#  include <json/json.h>            // Arch Linux 
+#else
+#  error "jsoncpp headers not found"
+#endif
 #include <pty.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
