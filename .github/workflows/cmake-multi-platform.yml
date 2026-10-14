@@ -1,24 +1,26 @@
-name: CMake on multiple platforms
+name: CMake Build & Release
 
 on:
   push:
     branches: [ "main" ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ "main" ]
 
 permissions:
-  contents: read
+  contents: write   # 用于创建 Release
 
 jobs:
+  # ---------- 原有构建与测试（可选保留） ----------
   build:
+    if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
         build_type: [Release]
-        c_compiler: [gcc, clang, cl]
+        c_compiler: [gcc, clang]
         include:
           - os: ubuntu-latest
             c_compiler: gcc
@@ -26,47 +28,142 @@ jobs:
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
-        exclude:
-          - os: ubuntu-latest
-            c_compiler: cl
-
     steps:
-    - uses: actions/checkout@main
+      - uses: actions/checkout@v4
 
-    # ---------- 安装系统依赖（仅 Ubuntu） ----------
-    - name: Install dependencies (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libjsoncpp-dev \
-          libreadline-dev \
-          qt6-base-dev \
-          qt6-tools-dev \
-          qt6-l10n-tools \
-          pkg-config \
-          python3-pytest
+      - name: Install dependencies (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libjsoncpp-dev libreadline-dev \
+            qt6-base-dev qt6-tools-dev qt6-l10n-tools \
+            pkg-config python3-pytest
 
-    - name: Set reusable strings
-      id: strings
-      shell: bash
-      run: |
-        echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+      - name: Configure CMake
+        run: >
+          cmake -B build
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DBUILD_TESTS=ON
+          -S .
 
-    - name: Configure CMake
-      # 对于 Linux，启用测试；Windows 暂时禁用（因为 readline 缺失）
-      run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -DBUILD_TESTS=${{ runner.os == 'Linux' && 'ON' || 'OFF' }}
-        -S ${{ github.workspace }}
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
 
-    - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      - name: Test
+        working-directory: build
+        run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
 
-    - name: Test
-      if: runner.os == 'Linux'
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+  # ---------- 构建 Debian 包 ----------
+  build-deb:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libjsoncpp-dev libreadline-dev \
+            qt6-base-dev qt6-tools-dev qt6-l10n-tools \
+            pkg-config python3-pytest cmake
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package with CPack (DEB)
+        working-directory: build
+        run: cpack -G DEB
+
+      - name: Upload DEB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deb-package
+          path: build/*.deb
+
+  # ---------- 构建 Arch Linux 包 ----------
+  build-arch:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:latest
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies (Arch)
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            base-devel cmake qt6-base qt6-tools \
+            jsoncpp readline pkgconf python-pytest git
+
+      - name: Build with CMake
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr
+          cmake --build build --config Release
+
+      - name: Create Arch package
+        run: |
+          # 获取项目版本（根据你的项目调整）
+          VERSION=$(grep -m1 'project(' CMakeLists.txt | sed -E 's/.*VERSION[[:space:]]+([0-9.]+).*/\1/')
+          [ -z "$VERSION" ] && VERSION="0.0.0"
+          PKGNAME="your-package-name"   # 替换为你的软件包名
+
+          # 临时安装到 pkgdir
+          mkdir -p pkgdir
+          DESTDIR="$PWD/pkgdir" cmake --install build
+
+          # 生成 .PKGINFO
+          cat > pkgdir/.PKGINFO <<EOF
+          pkgname = $PKGNAME
+          pkgver = $VERSION-1
+          pkgdesc = "Your package description"
+          arch = x86_64
+          size = $(du -sb pkgdir | cut -f1)
+          depend = qt6-base
+          depend = jsoncpp
+          depend = readline
+          EOF
+
+          # 打包为 .pkg.tar.zst
+          cd pkgdir
+          bsdtar -czf ../$PKGNAME-$VERSION-1-x86_64.pkg.tar.zst .PKGINFO *
+          cd ..
+
+      - name: Upload Arch artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-package
+          path: '*.pkg.tar.zst'
+
+  # ---------- 发布到 GitHub Release ----------
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [build-deb, build-arch]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List downloaded files (debug)
+        run: find artifacts -type f
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/deb-package/*.deb
+            artifacts/arch-package/*.pkg.tar.zst
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
