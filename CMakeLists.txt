@@ -238,3 +238,21 @@ if(UNIX)
     )
     add_dependencies(uninstall uninstall_rust)
 endif()
+
+# ======================================================================
+# CPack 配置（用于生成 .deb 包）
+# ======================================================================
+set(CPACK_PACKAGE_NAME "path-keeper")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_CONTACT "Your Name <upupwrite@outlook.com>")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
+set(CPACK_GENERATOR "DEB")
+
+# 自动计算运行时依赖（需要 dpkg-shlibdeps，Ubuntu runner 默认已安装）
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+
+# 可选：包描述和分类
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Path Keeper - a command manager")
+set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
+
+include(CPack)
