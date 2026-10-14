@@ -252,7 +252,7 @@ set(CPACK_GENERATOR "DEB")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
 # 可选：包描述和分类
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Path Keeper - a command manager")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "P(ath) K(eeper) Command-Line Tool - A Multi-Functional Command-Line Utility")
 set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
 
 include(CPack)
