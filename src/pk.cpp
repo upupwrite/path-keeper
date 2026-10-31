@@ -14,6 +14,9 @@
 
 #include "pk.h"
 
+#include <qcoreapplication.h>
+#include <qtranslator.h>
+
 #include <QCoreApplication>
 #include <algorithm>
 #include <cstdlib>  // getenv
@@ -30,14 +33,14 @@
 namespace fs = std::filesystem;
 
 // 归一化路径：展开 ~，转为绝对路径，去除尾部斜杠
-static std::string normalizePath(const std::string &input,
-                                 const std::string &cwd)
+static std::string normalizePath(const std::string& input,
+                                 const std::string& cwd)
 {
     std::string path = input;
     // 展开 ~
     if (!path.empty() && path[0] == '~')
     {
-        const char *home = getenv("HOME");
+        const char* home = getenv("HOME");
         if (home)
         {
             path = std::string(home) + path.substr(1);
@@ -92,12 +95,11 @@ PathKeeper::PathKeeper()
 // 出错时返回空字符串。
 std::string PathKeeper::runEditorForCommands()
 {
-    char *raw = editor_run_and_get_json();
+    char* raw = editor_run_and_get_json();
     if (raw == nullptr)
     {
         std::cerr << Colors::RED
-                  << QCoreApplication::translate("addRecord",
-                                                 "编辑器启动失败!")
+                  << QCoreApplication::translate("addRecord", "编辑器启动失败!")
                          .toStdString()
                   << Colors::RESET << std::endl;
         return std::string();
@@ -125,7 +127,6 @@ std::string PathKeeper::runEditorForCommands()
 
     return root["content"].asString();
 }
-
 
 void PathKeeper::addRecord(bool use_editor)
 {
@@ -175,7 +176,7 @@ void PathKeeper::addRecord(bool use_editor)
         }
 
         Json::Value newCmd;
-        newCmd["cmd"]  = content;
+        newCmd["cmd"] = content;
         newCmd["hash"] = file.computeHash(directory + content);
         commands.append(newCmd);
 
@@ -190,24 +191,26 @@ void PathKeeper::addRecord(bool use_editor)
         // 原有 readline 行为不变
         std::string cmd = ReadlineHelper::read_line(
             Colors::CYAN +
-            QCoreApplication::translate("addRecord", "请输入命令:").toStdString() +
+            QCoreApplication::translate("addRecord", "请输入命令:")
+                .toStdString() +
             Colors::RESET);
 
         if (cmd.empty() && commands.empty())
         {
             std::string default_command = "ls -l";
-            std::cerr << QCoreApplication::translate("addRecord", "使用默认命令: ")
+            std::cerr << QCoreApplication::translate("addRecord",
+                                                     "使用默认命令: ")
                              .toStdString()
                       << default_command << std::endl;
             Json::Value newCmd;
-            newCmd["cmd"]  = default_command;
+            newCmd["cmd"] = default_command;
             newCmd["hash"] = file.computeHash(directory + default_command);
             commands.append(newCmd);
         }
         else if (!cmd.empty())
         {
             Json::Value newCmd;
-            newCmd["cmd"]  = cmd;
+            newCmd["cmd"] = cmd;
             newCmd["hash"] = file.computeHash(directory + cmd);
             commands.append(newCmd);
         }
@@ -223,27 +226,28 @@ void PathKeeper::addRecord(bool use_editor)
         << Colors::RESET << std::endl;
 }
 
-void PathKeeper::runFile(){
-    use_pty=true;
+void PathKeeper::runFile()
+{
+    use_pty = true;
     std::string directory = ReadlineHelper::read_line(
-    Colors::CYAN +
-    QCoreApplication::translate("addRecord", "请输入运行目录: ")
-        .toStdString() +
-    Colors::RESET);
+        Colors::CYAN +
+        QCoreApplication::translate("addRecord", "请输入运行目录: ")
+            .toStdString() +
+        Colors::RESET);
 
     if (directory.empty())
     {
-        std::cerr << Colors::YELLOW
-                  << QCoreApplication::translate("runFile", "目录为~")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        directory="~";
+        std::cerr
+            << Colors::YELLOW
+            << QCoreApplication::translate("runFile", "目录为~").toStdString()
+            << Colors::RESET << std::endl;
+        directory = "~";
     }
 
     // 归一化为绝对路径（统一格式）
     directory = normalizePath(directory, cwd);
-    auto command= runEditorForCommands();
-    shell.shellCommand(command,directory,false,true,use_pty);
+    auto command = runEditorForCommands();
+    shell.shellCommand(command, directory, false, true, use_pty);
 }
 
 void PathKeeper::runRecent()
@@ -311,7 +315,7 @@ void PathKeeper::runRecent()
 
         runCommand(directory, command, extra);
     }
-    catch (const std::exception &)
+    catch (const std::exception&)
     {
         std::cerr << Colors::RED
                   << QCoreApplication::translate("runRecent", "最近记录无效!")
@@ -320,7 +324,7 @@ void PathKeeper::runRecent()
     }
 }
 
-Json::Value PathKeeper::showRecord(const bool &show)
+Json::Value PathKeeper::showRecord(const bool& show)
 {
     Json::Value config = file.loadConfig();
     Json::Value paths = config["path"];
@@ -337,7 +341,7 @@ Json::Value PathKeeper::showRecord(const bool &show)
         int i = 1;
         std::vector<std::string> valid_dirs = file.get_valid_directories(paths);
 
-        for (const auto &directory : valid_dirs)
+        for (const auto& directory : valid_dirs)
         {
             std::cerr << Colors::BLUE << "[" << i << "]" << Colors::RESET << " "
                       << Colors::GREEN << directory << Colors::RESET
@@ -355,9 +359,9 @@ Json::Value PathKeeper::showRecord(const bool &show)
     return config;
 }
 
-void PathKeeper::runCommand(const std::string &directory,
-                            const std::string &command,
-                            const std::string &extra)
+void PathKeeper::runCommand(const std::string& directory,
+                            const std::string& command,
+                            const std::string& extra)
 {
     std::string full_command = command;
     if (!extra.empty())
@@ -446,7 +450,7 @@ void PathKeeper::runCommand(const std::string &directory,
     }
 }
 
-void PathKeeper::setRecent(const std::string &cmd_index)
+void PathKeeper::setRecent(const std::string& cmd_index)
 {
     Json::Value config = showRecord();
     if (config.isNull())
@@ -462,8 +466,8 @@ void PathKeeper::setRecent(const std::string &cmd_index)
     parseRun(to_args);
 }
 
-void PathKeeper::selectRun(const std::string &cmd_index, const bool set_recent,
-                           const bool show, const std::string &extra,
+void PathKeeper::selectRun(const std::string& cmd_index, const bool set_recent,
+                           const bool show, const std::string& extra,
                            bool allow_recent_fallback)
 {
     Json::Value config = showRecord(show);
@@ -503,14 +507,14 @@ void PathKeeper::selectRun(const std::string &cmd_index, const bool set_recent,
     parseRun(to_args);
 }
 
-void PathKeeper::runPoint(const std::string &cmd_index,
-                          const std::string &extra)
+void PathKeeper::runPoint(const std::string& cmd_index,
+                          const std::string& extra)
 {
     bool show = cmd_index.empty();
     selectRun(cmd_index, false, show, extra, false);
 }
 
-void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
+void PathKeeper::displayCommands(const Json::Value& commands, int parent_index)
 {
     for (Json::ArrayIndex j = 0; j < commands.size(); j++)
     {
@@ -546,8 +550,8 @@ void PathKeeper::displayCommands(const Json::Value &commands, int parent_index)
     }
 }
 
-void PathKeeper::displayRecentMark(const Json::Value &config,
-                                   const Json::Value &paths)
+void PathKeeper::displayRecentMark(const Json::Value& config,
+                                   const Json::Value& paths)
 {
     if (!config["recent"].isNull() && config["recent"].isArray() &&
         config["recent"].size() == 2)
@@ -574,8 +578,8 @@ void PathKeeper::displayRecentMark(const Json::Value &config,
     }
 }
 
-std::string PathKeeper::getInputIndex(const std::string &provided_index,
-                                      const std::string &prompt)
+std::string PathKeeper::getInputIndex(const std::string& provided_index,
+                                      const std::string& prompt)
 {
     if (!provided_index.empty())
         return provided_index;
@@ -587,9 +591,9 @@ std::string PathKeeper::getInputIndex(const std::string &provided_index,
 }
 
 // 支持别名作为索引
-bool PathKeeper::parseIndex(const std::string &index_str,
-                            const Json::Value &paths, std::string &directory,
-                            int &cmd_idx)
+bool PathKeeper::parseIndex(const std::string& index_str,
+                            const Json::Value& paths, std::string& directory,
+                            int& cmd_idx)
 {
     const auto valid_dirs = file.get_valid_directories(paths);
     // 1. 尝试解析为标准编号（数字 或 数字.数字）
@@ -614,7 +618,7 @@ bool PathKeeper::parseIndex(const std::string &index_str,
             return (cmd_idx >= 0 &&
                     cmd_idx < static_cast<int>(commands.size()));
         }
-        catch (const std::exception &)
+        catch (const std::exception&)
         {
             return false;
         }
@@ -655,7 +659,7 @@ bool PathKeeper::parseIndex(const std::string &index_str,
                     return (cmd_idx >= 0 &&
                             cmd_idx < static_cast<int>(commands.size()));
                 }
-                catch (const std::exception &)
+                catch (const std::exception&)
                 {
                     return false;
                 }
@@ -666,7 +670,7 @@ bool PathKeeper::parseIndex(const std::string &index_str,
                 return true;
             }
         }
-        catch (const std::exception &)
+        catch (const std::exception&)
         {
             return false;
         }
@@ -675,9 +679,9 @@ bool PathKeeper::parseIndex(const std::string &index_str,
     {
         // 2. 尝试作为别名解析
         std::vector<std::string> dirNames = paths.getMemberNames();
-        for (const auto &dirName : dirNames)
+        for (const auto& dirName : dirNames)
         {
-            const Json::Value &cmds = paths[dirName];
+            const Json::Value& cmds = paths[dirName];
             if (!cmds.isArray())
                 continue;
             for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
@@ -703,8 +707,8 @@ bool PathKeeper::parseIndex(const std::string &index_str,
     }
 }
 
-void PathKeeper::saveRecentRecord(Json::Value &config,
-                                  const std::string &directory, int cmd_idx)
+void PathKeeper::saveRecentRecord(Json::Value& config,
+                                  const std::string& directory, int cmd_idx)
 {
     int orig_idx = -1;
     for (size_t i = 0; i < file.path_keys_order.size(); i++)
@@ -775,7 +779,7 @@ void PathKeeper::search()
 
 // ===================== 实现 alias 功能 =====================
 
-void PathKeeper::addAlias(const std::string &name, const std::string &indexStr)
+void PathKeeper::addAlias(const std::string& name, const std::string& indexStr)
 {
     Json::Value config = file.loadConfig();
     Json::Value paths = config["path"];
@@ -792,14 +796,14 @@ void PathKeeper::addAlias(const std::string &name, const std::string &indexStr)
               << Colors::RESET << std::endl;
 }
 
-void PathKeeper::removeAlias(const std::string &name)
+void PathKeeper::removeAlias(const std::string& name)
 {
     Json::Value config = file.loadConfig();
     Json::Value paths = config["path"];
     bool found = false;
-    for (const auto &dir : paths.getMemberNames())
+    for (const auto& dir : paths.getMemberNames())
     {
-        Json::Value &cmds = paths[dir];
+        Json::Value& cmds = paths[dir];
         if (!cmds.isArray())
             continue;
         for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
@@ -836,8 +840,8 @@ void PathKeeper::listAliases()
     bool hasAlias = false;
     for (size_t dirIdx = 0; dirIdx < valid_dirs.size(); ++dirIdx)
     {
-        const std::string &dir = valid_dirs[dirIdx];
-        Json::Value &cmds = paths[dir];
+        const std::string& dir = valid_dirs[dirIdx];
+        Json::Value& cmds = paths[dir];
         if (!cmds.isArray())
             continue;
         for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
@@ -857,8 +861,11 @@ void PathKeeper::listAliases()
     }
     if (!hasAlias)
     {
-        std::cerr << Colors::YELLOW << "没有定义任何别名" << Colors::RESET
-                  << std::endl;
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate("没有定义任何别名",
+                                                 "listAliases")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
     }
 }
 
@@ -880,8 +887,8 @@ void PathKeeper::installAliases()
     out << "# Auto-generated by pk alias install\n";
     for (size_t dirIdx = 0; dirIdx < valid_dirs.size(); ++dirIdx)
     {
-        const std::string &dir = valid_dirs[dirIdx];
-        Json::Value &cmds = paths[dir];
+        const std::string& dir = valid_dirs[dirIdx];
+        Json::Value& cmds = paths[dir];
         if (!cmds.isArray())
             continue;
         for (Json::ArrayIndex i = 0; i < cmds.size(); ++i)
@@ -896,11 +903,13 @@ void PathKeeper::installAliases()
         }
     }
     out.close();
-    std::cerr << Colors::GREEN << "别名已安装到 " << aliasFile << Colors::RESET
-              << std::endl;
+    std::cerr << Colors::GREEN
+              << QCoreApplication::translate("别名已安装到: ", "installAliases")
+                     .toStdString()
+              << aliasFile << Colors::RESET << std::endl;
 }
 
-void PathKeeper::parseRun(const ParseArgs &args_struct)
+void PathKeeper::parseRun(const ParseArgs& args_struct)
 {
     const std::string index_str = args_struct.index_str;
     const std::string extra = args_struct.extra;
