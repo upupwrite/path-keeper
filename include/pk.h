@@ -15,11 +15,11 @@
 #pragma once
 #include <fcntl.h>
 #if __has_include(<jsoncpp/json/json.h>)
-#  include <jsoncpp/json/json.h>   // Debian / Ubuntu
+#include <jsoncpp/json/json.h>  // Debian / Ubuntu
 #elif __has_include(<json/json.h>)
-#  include <json/json.h>            // Arch Linux
+#include <json/json.h>  // Arch Linux
 #else
-#  error "jsoncpp headers not found"
+#error "jsoncpp headers not found"
 #endif
 #include <pty.h>
 #include <sys/ioctl.h>
@@ -43,9 +43,9 @@
 #include <thread>
 #include <vector>
 
+#include "editor.h"
 #include "loadfile.h"
 #include "terminal.h"
-#include "editor.h"
 
 struct ParseArgs
 {
@@ -57,20 +57,33 @@ struct ParseArgs
     bool set_recent = false;
 };
 
+struct CommandArgs
+{
+    std::string dir;
+    std::string command;
+    std::string alias;
+
+    bool record = false;
+    bool pty = false;
+    bool self = false;
+
+    bool operator==(const CommandArgs&) const = default;
+};
+
 class PathKeeper
 {
 private:
     File file;
     Shell shell;
 
-    void displayCommands(const Json::Value &commands, int parent_index = 0);
+    void displayCommands(const Json::Value& commands, int parent_index = 0);
 
-    void displayRecentMark(const Json::Value &config, const Json::Value &paths);
+    void displayRecentMark(const Json::Value& config, const Json::Value& paths);
 
-    std::string getInputIndex(const std::string &provided_index,
-                              const std::string &prompt);
+    std::string getInputIndex(const std::string& provided_index,
+                              const std::string& prompt);
 
-    void saveRecentRecord(Json::Value &config, const std::string &directory,
+    void saveRecentRecord(Json::Value& config, const std::string& directory,
                           int cmd_idx);
     // 调用 Rust 编辑器，把返回的 JSON 转义内容解析成非空命令行列表。
     // 出错时返回空 vector。
@@ -79,29 +92,31 @@ private:
 public:
     PathKeeper();
     void addRecord(bool use_editor = false);
-    void runCommand(const std::string &directory, const std::string &command,
-                    const std::string &extra = "");
-    void setRecent(const std::string &cmd_index = "");
+    void runCommand(const std::string& directory, const std::string& command,
+                    const std::string& extra = "");
+    void setRecent(const std::string& cmd_index = "");
     void runRecent();
     void setCommand();
     void search();
-    Json::Value showRecord(const bool &show = true);
-    void runPoint(const std::string &cmd_index = "",
-                  const std::string &extra = "");
-    void selectRun(const std::string &cmd_index = "",
+    Json::Value showRecord(const bool& show = true);
+    void runPoint(const std::string& cmd_index = "",
+                  const std::string& extra = "");
+    void selectRun(const std::string& cmd_index = "",
                    const bool set_recent = true, const bool show = true,
-                   const std::string &extra = "",
+                   const std::string& extra = "",
                    bool allow_recent_fallback = true);
-    bool parseIndex(const std::string &index_str, const Json::Value &paths,
-                    std::string &directory, int &cmd_idx);
+    bool parseIndex(const std::string& index_str, const Json::Value& paths,
+                    std::string& directory, int& cmd_idx);
 
-    void parseRun(const ParseArgs &args_struct);
+    void parseRun(const ParseArgs& args_struct);
     void runFile();
 
-    void addAlias(const std::string &name, const std::string &indexStr);
-    void removeAlias(const std::string &name);
+    void addAlias(const std::string& name, const std::string& indexStr);
+    void removeAlias(const std::string& name);
     void listAliases();
     void installAliases();
+    void addGroup();
+    void listGroup();
 
     std::string cwd;
     bool use_pty = false;

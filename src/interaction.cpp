@@ -33,7 +33,7 @@ void Interaction::dir()
               << Colors::BLUE << pk.cwd << Colors::RESET << std::endl;
 }
 
-void Interaction::main(int argc, char **argv)
+void Interaction::main(int argc, char** argv)
 {
     try
     {
@@ -66,11 +66,11 @@ void Interaction::main(int argc, char **argv)
                 arg_storage.push_back(a);
             }
         }
-        std::vector<char *> filtered_argv;
+        std::vector<char*> filtered_argv;
         filtered_argv.reserve(arg_storage.size());
-        for (auto &s : arg_storage)
+        for (auto& s : arg_storage)
         {
-            filtered_argv.push_back(const_cast<char *>(s.c_str()));
+            filtered_argv.push_back(const_cast<char*>(s.c_str()));
         }
         argc = static_cast<int>(filtered_argv.size());
         argv = filtered_argv.data();
@@ -102,7 +102,8 @@ void Interaction::main(int argc, char **argv)
                     positional.push_back(a);
                 }
             }
-            // 如果原来支持 pk add <directory> 这种位置参数，在这里把 positional[0]
+            // 如果原来支持 pk add <directory> 这种位置参数，在这里把
+            // positional[0]
             pk.addRecord(use_editor);
         }
 
@@ -219,12 +220,20 @@ void Interaction::main(int argc, char **argv)
             showHelp();
             return;
         }
-        else if (option=="-r"||option=="--run"||option=="run"){
+        else if (option == "-r" || option == "--run" || option == "run")
+        {
             pk.runFile();
         }
         else if (option == "search")
         {
             pk.search();
+        }
+        else if (option == "-g" || option == "--group")
+        {
+            if (argc > 2)
+            {
+                std::cerr << "group" << std::endl;
+            }
         }
         else if (option == "log")
         {
@@ -555,7 +564,7 @@ void Interaction::main(int argc, char **argv)
                       << "      pk -v | --version" << std::endl;
         }
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         std::cerr << Colors::RED
                   << QCoreApplication::translate("Interaction", "Error: ")
