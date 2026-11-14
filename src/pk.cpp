@@ -326,8 +326,8 @@ void PathKeeper::runRecent()
 
 Json::Value PathKeeper::showRecord(const bool& show) const
 {
-    Json::Value config = file.loadConfig();
-    Json::Value paths = config["path"];
+    const Json::Value config = file.loadConfig();
+    const Json::Value paths = config["path"];
     if (paths.empty())
     {
         std::cerr << Colors::YELLOW
@@ -556,10 +556,10 @@ void PathKeeper::displayRecentMark(const Json::Value& config,
     if (!config["recent"].isNull() && config["recent"].isArray() &&
         config["recent"].size() == 2)
     {
-        int orig_idx1 = config["recent"][0].asInt();
-        int idx2 = config["recent"][1].asInt();
+        const int orig_idx1 = config["recent"][0].asInt();
+        const int idx2 = config["recent"][1].asInt();
 
-        int display_num =
+        const int display_num =
             file.get_display_number_by_directory_index(orig_idx1, paths);
         if (display_num != -1)
         {
