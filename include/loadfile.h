@@ -97,17 +97,40 @@ public:
     static std::vector<std::string> path_keys_order;
     File();
     Json::Value loadConfig();
+    // Loading may create/upgrade the on-disk configuration, but does not
+    // modify this File object's state, so it is available on const instances.
+    Json::Value loadConfig() const
+    {
+        return const_cast<File *>(this)->loadConfig();
+    }
     void saveConfig(const Json::Value &config);
 
     void load_key_order();
 
     std::vector<std::string> get_valid_directories(const Json::Value &paths);
+    std::vector<std::string> get_valid_directories(
+        const Json::Value &paths) const
+    {
+        return const_cast<File *>(this)->get_valid_directories(paths);
+    }
 
     int get_directory_index_by_display_number(int display_num,
                                               const Json::Value &paths);
+    int get_directory_index_by_display_number(
+        int display_num, const Json::Value &paths) const
+    {
+        return const_cast<File *>(this)->get_directory_index_by_display_number(
+            display_num, paths);
+    }
 
     int get_display_number_by_directory_index(int orig_index,
                                               const Json::Value &paths);
+    int get_display_number_by_directory_index(
+        int orig_index, const Json::Value &paths) const
+    {
+        return const_cast<File *>(this)->get_display_number_by_directory_index(
+            orig_index, paths);
+    }
 
     // ========== 新增：全局日志开关 ==========
     bool isGlobalLogEnabled();
