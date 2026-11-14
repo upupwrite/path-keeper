@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 Shell::Shell()
 {
@@ -40,6 +41,26 @@ Shell::Shell()
 
     file.load_key_order();
 }
+
+
+bool isTmuxAvailable() {
+    const char* path_env = std::getenv("PATH");
+    if (!path_env) return false;
+
+    std::stringstream ss(path_env);
+    std::string dir;
+
+    while (std::getline(ss, dir, ':')) {
+        std::string candidate = dir + "/tmux";
+        // 检查文件是否存在且有可执行权限
+        if (access(candidate.c_str(), X_OK) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 
 // ---------------------------------------------------------------------------
 // Execute a command directly inside the current process via a pseudo-terminal.
@@ -223,7 +244,7 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
     static bool has_tmux = false;
     if (!tmux_checked)
     {
-        has_tmux = (system("which tmux > /dev/null 2>&1") == 0);
+        has_tmux = isTmuxAvailable();
         tmux_checked = true;
     }
 
