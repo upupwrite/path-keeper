@@ -59,7 +59,7 @@ jobs:
           # This will handover control about PR rejection to the GitHub side
           max-allowed-issues: 2147483647
 
-      # Validate the SARIF file exists and is valid JSON before attempting upload
+      # Validate the SARIF file exists, is valid JSON, and contains at least one run before uploading
       - name: Validate SARIF
         id: validate-sarif
         if: always()
@@ -68,8 +68,15 @@ jobs:
           if [ -f results.sarif ]; then
             if [ -s results.sarif ]; then
               if jq empty results.sarif >/dev/null 2>&1; then
-                sarif_valid=true
-                echo "results.sarif exists and is valid JSON"
+                if jq -e '(.runs | type == "array") and (.runs | length > 0)' results.sarif >/dev/null 2>&1; then
+                  sarif_valid=true
+                  echo "results.sarif exists, is valid JSON, and contains at least one SARIF run"
+                else
+                  echo "ERROR: results.sarif is valid JSON but has no SARIF runs; GitHub requires at least one run"
+                  echo "--- start of invalid results.sarif (first 200 lines) ---"
+                  head -n 200 results.sarif || true
+                  echo "--- end of snippet ---"
+                fi
               else
                 echo "ERROR: results.sarif exists but contains invalid JSON"
                 echo "--- start of invalid results.sarif (first 200 lines) ---"
