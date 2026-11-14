@@ -324,7 +324,7 @@ void PathKeeper::runRecent()
     }
 }
 
-Json::Value PathKeeper::showRecord(const bool& show)
+Json::Value PathKeeper::showRecord(const bool& show) const
 {
     Json::Value config = file.loadConfig();
     Json::Value paths = config["path"];
@@ -514,7 +514,7 @@ void PathKeeper::runPoint(const std::string& cmd_index,
     selectRun(cmd_index, false, show, extra, false);
 }
 
-void PathKeeper::displayCommands(const Json::Value& commands, int parent_index)
+void PathKeeper::displayCommands(const Json::Value& commands, int parent_index) const
 {
     for (Json::ArrayIndex j = 0; j < commands.size(); j++)
     {
@@ -551,7 +551,7 @@ void PathKeeper::displayCommands(const Json::Value& commands, int parent_index)
 }
 
 void PathKeeper::displayRecentMark(const Json::Value& config,
-                                   const Json::Value& paths)
+                                   const Json::Value& paths) const
 {
     if (!config["recent"].isNull() && config["recent"].isArray() &&
         config["recent"].size() == 2)
