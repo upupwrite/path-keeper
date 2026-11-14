@@ -49,9 +49,9 @@
 
 struct ParseArgs
 {
-    const std::string index_str;
-    const std::string prefix = "";
-    const std::string extra = "";
+    std::string index_str;
+    std::string prefix = "";
+    std::string extra = "";
     //    bool show_board=false;
     bool run_command = false;
     bool set_recent = false;
@@ -76,9 +76,9 @@ private:
     File file;
     Shell shell;
 
-    void displayCommands(const Json::Value& commands, int parent_index = 0);
+    void displayCommands(const Json::Value& commands, int parent_index = 0) const;
 
-    void displayRecentMark(const Json::Value& config, const Json::Value& paths);
+    void displayRecentMark(const Json::Value& config, const Json::Value& paths) const;
 
     std::string getInputIndex(const std::string& provided_index,
                               const std::string& prompt);
@@ -98,7 +98,7 @@ public:
     void runRecent();
     void setCommand();
     void search();
-    Json::Value showRecord(const bool& show = true);
+    Json::Value showRecord(const bool& show = true) const;
     void runPoint(const std::string& cmd_index = "",
                   const std::string& extra = "");
     void selectRun(const std::string& cmd_index = "",
