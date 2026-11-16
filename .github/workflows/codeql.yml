@@ -14,14 +14,9 @@ permissions:
   actions: read
 
 jobs:
-  analyze:
-    name: Analyze (${{ matrix.language }})
+  analyze-cpp:
+    name: Analyze C++
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ "cpp", "python", "actions" ]
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,11 +24,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
+          languages: cpp
           build-mode: manual
 
       - name: Install C++ build dependencies
-        if: matrix.language == 'cpp'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -42,7 +36,6 @@ jobs:
             qt6-base-dev qt6-tools-dev qt6-l10n-tools
 
       - name: Build C++ project
-        if: matrix.language == 'cpp'
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
           cmake --build build --parallel 2
@@ -50,4 +43,21 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:cpp"
+
+  analyze-interpreted:
+    name: Analyze Python and GitHub Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python, actions
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:python-actions"
