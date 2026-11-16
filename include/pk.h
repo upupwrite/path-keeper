@@ -43,7 +43,6 @@
 #include <thread>
 #include <vector>
 
-#include "editor.h"
 #include "loadfile.h"
 #include "terminal.h"
 
