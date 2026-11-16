@@ -24,7 +24,7 @@ This version includes important bug fixes and new features:
 - Interactive Search: Fuzzy-find command selection using fzf
 - Hash Verification: Verify command integrity and detect configuration tampering
 - Shell Aliases: Create convenient shell aliases for frequently used command indices
-- Multi-Line Commands: Support editor-based multi-line command input
+- Multi-Line Commands: Use the configured editor or the system default (`VISUAL`/`EDITOR`)
 - Flexible Log Control: Per-command log setting overrides, with global default support
 - Dependencies: fzf and tmux (required for search and command logging features)
 
@@ -81,8 +81,8 @@ pk -c
 ```
 Configuration Management:
   config             Open the configuration file in the default editor
-  config -editor     Interactively set the editor (or specify directly)
-  config -editor vim Set the editor to a specific command
+  config -editor     Clear the override and use the system default editor
+  config -editor vim Set an explicit editor command
 
 Advanced Features:
   alias add <name> <index>   Add an alias for quick command execution
@@ -237,12 +237,7 @@ echo $PATH
 which pk
 ```
 
-Issue: "No editors found"
-Solution: Install a common editor
-
-```bash
-sudo apt install vim    # or nano, emacs, etc.
-```
+Editor selection: Path Keeper uses `editor` in `~/.pk.json` when set, then checks `VISUAL`, `EDITOR`, `sensible-editor`, `editor`, and `vi` from `PATH`. Set an override with `pk config -editor vim`, or clear it with `pk config -editor`.
 
 Issue: "Failed to load translation"
 Solution: Verify Qt5/Qt6 installation

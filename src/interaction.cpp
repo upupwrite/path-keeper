@@ -397,87 +397,21 @@ void Interaction::main(int argc, char** argv)
         }
 
         else if (option == "config")
-        {
-            Editor editor;
-            if (argc > 2)
-            {
-                if (std::strcmp(argv[2], "-editor") == 0)
-                {
-                    if (argv[3] == nullptr || argv[3][0] == '\0')
-                    {
-                    SETEDITOR:
-                        std::string currentEditor = editor.getEditor();
-                        if (!currentEditor.empty())
-                        {
-                            std::cerr << QCoreApplication::translate(
-                                             "Interaction",
-                                             "Current editor setting: ")
-                                             .toStdString()
-                                      << currentEditor << "\n";
-                        }
-                        auto editors = editor.getAvailableEditors();
-
-                        if (editors.empty())
-                        {
-                            std::cerr << QCoreApplication::translate(
-                                             "Interaction",
-                                             "No common editors found on your "
-                                             "system.")
-                                             .toStdString()
-                                      << "\n";
-                            std::cerr << QCoreApplication::translate(
-                                             "Interaction",
-                                             "Please install one (e.g., vim, "
-                                             "nano) and rerun this script.")
-                                             .toStdString()
-                                      << "\n";
-                            return;
-                        }
-
-                        editor.printMenu(editors);
-                        std::string selectedEditor =
-                            editor.getUserChoice(editors);
-
-                        std::cerr << "\n"
-                                  << QCoreApplication::translate(
-                                         "Interaction", "Selected editor: ")
-                                         .toStdString()
-                                  << selectedEditor << "\n";
-                        editor.setEditor(selectedEditor);
-                    }
-                    else
-                    {
-                        std::string selectedEditor = argv[3];
-                        std::cerr << QCoreApplication::translate(
-                                         "Interaction", "Selected editor: ")
-                                         .toStdString()
-                                  << selectedEditor << "\n";
-                        editor.setEditor(selectedEditor);
-                    }
-                }
-            }
-            else
-            {
-                if (!editor.getEditor().empty())
-                {
-                    std::string configCommand =
-                        editor.getEditor() + " " + Achieve::CONFIG_FILE;
-                    // Unchanged: handled by the external shell,
-                    // NOT the PTY path.
-                    shell.shellCommand(configCommand, "~", false, true);
-                    return;
-                }
-                else
-                {
-                    std::cerr << QCoreApplication::translate(
-                                     "Interaction", "No current editor setting")
-                                     .toStdString()
-                              << std::endl;
-                    goto SETEDITOR;
-                }
-            }
-        }
-        else if (option == "alias")
+{
+    Editor editor;
+    if (argc > 2 && std::strcmp(argv[2], "-editor") == 0) {
+        const std::string selectedEditor = (argc > 3 && argv[3] != nullptr) ? argv[3] : "";
+        editor.setEditor(selectedEditor);
+        if (selectedEditor.empty()) std::cerr << "Editor override cleared. Using system default: " << editor.getEditor() << "\n";
+        else std::cerr << "Selected editor: " << selectedEditor << "\n";
+        return;
+    }
+    const std::string selectedEditor = editor.getEditor();
+    if (selectedEditor.empty()) { std::cerr << "No system editor found. Set VISUAL/EDITOR or run pk config -editor <command>.\n"; return; }
+    const std::string configCommand = selectedEditor + " '" + Achieve::CONFIG_FILE + "'";
+    shell.shellCommand(configCommand, "~", false, true); return;
+}
+else if (option == "alias")
         {
             if (argc < 3)
             {

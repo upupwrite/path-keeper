@@ -23,6 +23,8 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <cstdio>
+#include <unistd.h>
 #include <string>
 #include <vector>
 
@@ -91,41 +93,30 @@ PathKeeper::PathKeeper()
     file.load_key_order();
 }
 
-// 调用 Rust 编辑器，返回编辑器缓冲区中的原始内容（可能含多行）。
-// 出错时返回空字符串。
+// Launch the configured editor and return the edited buffer.
 std::string PathKeeper::runEditorForCommands()
 {
-    char* raw = editor_run_and_get_json();
-    if (raw == nullptr)
-    {
-        std::cerr << Colors::RED
-                  << QCoreApplication::translate("addRecord", "编辑器启动失败!")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
-        return std::string();
+    Editor editor;
+    const std::string editorCommand = editor.getEditor();
+    if (editorCommand.empty()) {
+        std::cerr << Colors::RED << "No usable system editor found. Set VISUAL/EDITOR or run 'pk config -editor <command>'." << Colors::RESET << std::endl;
+        return {};
     }
-
-    std::string escaped(raw);
-    editor_free_string(raw);
-
-    // escaped 是 JSON 转义串，包成 {"content": "..."} 再解析即可还原原始文本
-    std::string doc = "{\"content\": \"" + escaped + "\"}";
-
-    Json::Value root;
-    Json::CharReaderBuilder builder;
-    std::string errs;
-    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-    if (!reader->parse(doc.data(), doc.data() + doc.size(), &root, &errs))
-    {
-        std::cerr << Colors::RED
-                  << QCoreApplication::translate("addRecord",
-                                                 "无法解析编辑器输出: ")
-                         .toStdString()
-                  << errs << Colors::RESET << std::endl;
-        return std::string();
+    char temporaryPath[] = "/tmp/path-keeper-edit-XXXXXX";
+    const int descriptor = mkstemp(temporaryPath);
+    if (descriptor < 0) { std::cerr << Colors::RED << "Unable to create editor temporary file." << Colors::RESET << std::endl; return {}; }
+    close(descriptor);
+    std::string quotedPath = "'";
+    for (const char character : std::string(temporaryPath)) {
+        if (character == '\'') quotedPath += "'\\''"; else quotedPath += character;
     }
-
-    return root["content"].asString();
+    quotedPath += "'";
+    const int status = std::system((editorCommand + " " + quotedPath).c_str());
+    std::string content;
+    if (status == 0) { std::ifstream input(temporaryPath, std::ios::binary); if (input) content.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()); }
+    std::remove(temporaryPath);
+    if (status != 0) std::cerr << Colors::RED << "Editor exited unsuccessfully." << Colors::RESET << std::endl;
+    return content;
 }
 
 void PathKeeper::addRecord(bool use_editor)

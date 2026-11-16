@@ -23,6 +23,7 @@
 #include <functional>
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -821,146 +822,28 @@ int File::getCommandIndex(const std::string& dir, const std::string& commandStr)
     return -1;
 }
 
-Editor::Editor()
-    : COMMON_EDITORS({"vim", "nvim", "nano", "emacs", "micro", "helix", "code",
-                      "codium", "kate", "gedit", "mousepad", "ne", "jed",
-                      "joe"})
-{
-}
-std::string Editor::findInPath(const std::string& prog)
-{
-    // 使用 which 命令查找可执行文件的完整路径
-    std::string cmd = "which " + prog + " 2>/dev/null";
-    FILE* pipe = popen(cmd.c_str(), "r");
-    if (!pipe)
-        return "";
+Editor::Editor() = default;
 
-    char buffer[128];
-    std::string result;
-
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-    {
-        result = buffer;
-        // 移除末尾的换行符
-        if (!result.empty() && result.back() == '\n')
-        {
-            result.pop_back();
-        }
+std::string Editor::findInPath(const std::string& program) {
+    if (program.empty()) return {};
+    if (program.find('/') != std::string::npos) return access(program.c_str(), X_OK) == 0 ? program : std::string{};
+    const char* pathEnvironment = std::getenv("PATH");
+    if (!pathEnvironment) return {};
+    std::istringstream paths(pathEnvironment); std::string directory;
+    while (std::getline(paths, directory, ':')) {
+        if (directory.empty()) directory = ".";
+        const std::string candidate = directory + "/" + program;
+        if (access(candidate.c_str(), X_OK) == 0) return candidate;
     }
-
-    pclose(pipe);
-
-    // 验证找到的路径是否可执行
-    if (!result.empty() && access(result.c_str(), X_OK) == 0)
-    {
-        return result;
-    }
-
-    return "";
+    return {};
 }
 
-std::vector<std::pair<std::string, std::string>> Editor::getAvailableEditors()
-{
-    std::vector<std::pair<std::string, std::string>> available;
-    for (const auto& name : COMMON_EDITORS)
-    {
-        std::string path = findInPath(name);
-        if (!path.empty())
-        {
-            available.emplace_back(name, path);
-        }
-    }
-    return available;
+std::string Editor::getEditor() {
+    const std::string configured = config["editor"].asString();
+    if (!configured.empty()) return configured;
+    for (const char* variable : {"VISUAL", "EDITOR"}) { const char* value = std::getenv(variable); if (value && *value) return value; }
+    for (const std::string& candidate : {"sensible-editor", "editor", "vi"}) { const std::string resolved = findInPath(candidate); if (!resolved.empty()) return resolved; }
+    return {};
 }
 
-void Editor::printMenu(
-    const std::vector<std::pair<std::string, std::string>>& editors)
-{
-    std::cerr << "\nAvailable editors on your system:\n";
-    for (size_t i = 0; i < editors.size(); ++i)
-    {
-        std::cerr << "  " << (i + 1) << ". " << editors[i].first << " ("
-                  << editors[i].second << ")\n";
-    }
-    std::cerr << "  0. Enter a custom editor command\n";
-}
-
-std::string Editor::getUserChoice(
-    const std::vector<std::pair<std::string, std::string>>& editors)
-{
-    while (true)
-    {
-        std::cerr << "\nEnter the number of your choice (or 0 for custom): ";
-        std::string input;
-        std::getline(std::cin, input);
-
-        // 去除首尾空格
-        input.erase(0, input.find_first_not_of(" \t\n\r"));
-        input.erase(input.find_last_not_of(" \t\n\r") + 1);
-
-        if (input.empty())
-            continue;
-
-        // 尝试解析为数字
-        char* end;
-        long choice = strtol(input.c_str(), &end, 10);
-        if (*end != '\0')
-        {
-            std::cerr << "Please enter a valid number.\n";
-            continue;
-        }
-
-        if (choice == 0)
-        {
-            std::cerr
-                << "Enter the editor command (e.g., 'hx' or '/usr/bin/nvim'): ";
-            std::string custom;
-            std::getline(std::cin, custom);
-            // 去除空格
-            custom.erase(0, custom.find_first_not_of(" \t\n\r"));
-            custom.erase(custom.find_last_not_of(" \t\n\r") + 1);
-            if (custom.empty())
-            {
-                std::cerr
-                    << "No custom command entered. Please choose again.\n";
-                continue;
-            }
-            // 可选：检查是否存在，但即使不存在也允许（用户可能期望后续安装）
-            std::string resolved = findInPath(custom);
-            if (!resolved.empty())
-            {
-                return resolved;  // 返回完整路径
-            }
-            else if (custom.find('/') != std::string::npos &&
-                     access(custom.c_str(), X_OK) == 0)
-            {
-                return custom;  // 直接输入的绝对路径
-            }
-            else
-            {
-                // 无法验证，但接受输入
-                std::cerr
-                    << Colors::YELLOW << "Warning: '" << Colors::RESET << custom
-                    << "' does not seem to be executable. Using it anyway.\n";
-                return custom;
-            }
-        }
-        else if (choice >= 1 && static_cast<size_t>(choice) <= editors.size())
-        {
-            return editors[choice - 1].second;  // 返回路径
-        }
-        else
-        {
-            std::cerr << "Invalid number. Please try again.\n";
-        }
-    }
-}
-
-std::string Editor::getEditor() { return config["editor"].asString(); }
-
-// 设置 editor 配置
-void Editor::setEditor(const std::string& newEditor)
-{
-    config["editor"] = newEditor;
-    file.saveConfig(config);
-}
+void Editor::setEditor(const std::string& newEditor) { config["editor"] = newEditor; file.saveConfig(config); }

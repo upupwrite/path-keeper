@@ -619,3 +619,22 @@ def test_directory_with_spaces(setup_home_and_cleanup):
         assert result.returncode == 0
         # 子 shell 包裹应包含该目录
         assert dir_with_space in result.stdout
+
+
+def test_editor_uses_system_default_environment(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    fake_editor = Path(home) / "fake-editor"
+    fake_editor.write_text("#!/bin/sh\nprintf '%s' 'echo from system editor' > \"$1\"\n")
+    fake_editor.chmod(0o755)
+    result = run_pk("-a", "--edit", input_text=".\n", env={"VISUAL": str(fake_editor), "EDITOR": ""})
+    assert result.returncode == 0, result.stderr
+    config = read_config(home)
+    assert any(command["cmd"] == "echo from system editor" for commands in config["path"].values() for command in commands)
+
+
+def test_editor_override_can_be_cleared(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    run_pk("config", "-editor", "custom-editor")
+    result = run_pk("config", "-editor")
+    assert result.returncode == 0
+    assert read_config(home).get("editor") == ""

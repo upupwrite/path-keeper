@@ -85,8 +85,6 @@ private:
 
     void saveRecentRecord(Json::Value& config, const std::string& directory,
                           int cmd_idx);
-    // 调用 Rust 编辑器，把返回的 JSON 转义内容解析成非空命令行列表。
-    // 出错时返回空 vector。
     std::string runEditorForCommands();
 
 public:

@@ -173,16 +173,8 @@ class Editor
 public:
     Editor();
     File file;
-    const std::string CONFIG_FILE;
-    const std::vector<std::string> COMMON_EDITORS;
-
     Json::Value config = file.loadConfig();
-    void printMenu(
-        const std::vector<std::pair<std::string, std::string>> &editors);
-    std::string getUserChoice(
-        const std::vector<std::pair<std::string, std::string>> &editors);
-    std::string findInPath(const std::string &prog);
-    std::vector<std::pair<std::string, std::string>> getAvailableEditors();
     std::string getEditor();
-    void setEditor(const std::string &newEditor);
+    void setEditor(const std::string& newEditor);
+    std::string findInPath(const std::string& program);
 };
