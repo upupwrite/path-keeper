@@ -28,20 +28,7 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <map>
-#include <optional>
-#include <ostream>
 #include <string>
-#include <thread>
-#include <vector>
 
 #include "loadfile.h"
 #include "terminal.h"
@@ -75,9 +62,11 @@ private:
     File file;
     Shell shell;
 
-    void displayCommands(const Json::Value& commands, int parent_index = 0) const;
+    void displayCommands(const Json::Value& commands,
+                         int parent_index = 0) const;
 
-    void displayRecentMark(const Json::Value& config, const Json::Value& paths) const;
+    void displayRecentMark(const Json::Value& config,
+                           const Json::Value& paths) const;
 
     std::string getInputIndex(const std::string& provided_index,
                               const std::string& prompt);

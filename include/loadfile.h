@@ -16,11 +16,11 @@
 #include <fcntl.h>
 #include <json/writer.h>
 #if __has_include(<jsoncpp/json/json.h>)
-#  include <jsoncpp/json/json.h>   // Debian / Ubuntu
+#include <jsoncpp/json/json.h>  // Debian / Ubuntu
 #elif __has_include(<json/json.h>)
-#  include <json/json.h>            // Arch Linux 
+#include <json/json.h>  // Arch Linux
 #else
-#  error "jsoncpp headers not found"
+#error "jsoncpp headers not found"
 #endif
 #include <pty.h>
 #include <sys/ioctl.h>
@@ -30,18 +30,10 @@
 #include <termios.h>
 #include <unistd.h>
 
-#include <algorithm>
-#include <atomic>
-#include <csignal>
 #include <cstdlib>
-#include <cstring>
-#include <fstream>
 #include <iostream>
-#include <iterator>
-#include <map>
 #include <ostream>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include "json/value.h"
@@ -50,7 +42,7 @@ namespace Achieve
 {
 const std::string CONFIG_FILE = []() -> std::string
 {
-    const char *home = std::getenv("HOME");
+    const char* home = std::getenv("HOME");
     if (home)
     {
         return std::string(home) + "/.pk.json";
@@ -59,7 +51,7 @@ const std::string CONFIG_FILE = []() -> std::string
 }();
 const std::string LOG_FILE = []() -> std::string
 {
-    const char *home = std::getenv("HOME");
+    const char* home = std::getenv("HOME");
     if (home)
     {
         return std::string(home) + "/.pk.log";
@@ -71,23 +63,23 @@ const std::string LOG_FILE = []() -> std::string
 class JsonFormatter
 {
 private:
-    std::ostream &os_;
+    std::ostream& os_;
     int indent_;
 
 public:
-    JsonFormatter(std::ostream &os, int indent = 0) : os_(os), indent_(indent)
+    JsonFormatter(std::ostream& os, int indent = 0) : os_(os), indent_(indent)
     {
     }
 
     ~JsonFormatter() = default;  // 使用默认析构函数
 
     void writeIndent();
-    void writeString(const std::string &str);
-    void writeValue(const Json::Value &value, int extraIndent);
-    void writeArray(const Json::Value &array, int extraIndent);
-    void writeObject(const Json::Value &obj, int extraIndent);
-    void writeObject(const Json::Value &obj, int extraIndent,
-                     const std::vector<std::string> &keyOrder);
+    void writeString(const std::string& str);
+    void writeValue(const Json::Value& value, int extraIndent);
+    void writeArray(const Json::Value& array, int extraIndent);
+    void writeObject(const Json::Value& obj, int extraIndent);
+    void writeObject(const Json::Value& obj, int extraIndent,
+                     const std::vector<std::string>& keyOrder);
 };
 
 class File
@@ -96,76 +88,54 @@ public:
     std::string CONFIG_FILE;
     static std::vector<std::string> path_keys_order;
     File();
-    Json::Value loadConfig();
-    // Loading may create/upgrade the on-disk configuration, but does not
-    // modify this File object's state, so it is available on const instances.
-    Json::Value loadConfig() const
-    {
-        return const_cast<File *>(this)->loadConfig();
-    }
-    void saveConfig(const Json::Value &config);
+    Json::Value loadConfig() const;
+    void saveConfig(const Json::Value& config) const;
 
     void load_key_order();
 
-    std::vector<std::string> get_valid_directories(const Json::Value &paths);
     std::vector<std::string> get_valid_directories(
-        const Json::Value &paths) const
-    {
-        return const_cast<File *>(this)->get_valid_directories(paths);
-    }
+        const Json::Value& paths) const;
 
     int get_directory_index_by_display_number(int display_num,
-                                              const Json::Value &paths);
-    int get_directory_index_by_display_number(
-        int display_num, const Json::Value &paths) const
-    {
-        return const_cast<File *>(this)->get_directory_index_by_display_number(
-            display_num, paths);
-    }
+                                              const Json::Value& paths) const;
 
     int get_display_number_by_directory_index(int orig_index,
-                                              const Json::Value &paths);
-    int get_display_number_by_directory_index(
-        int orig_index, const Json::Value &paths) const
-    {
-        return const_cast<File *>(this)->get_display_number_by_directory_index(
-            orig_index, paths);
-    }
+                                              const Json::Value& paths) const;
 
     // ========== 新增：全局日志开关 ==========
     bool isGlobalLogEnabled();
     void setGlobalLogEnabled(bool enabled);
 
     // ========== 新增：命令级日志 ==========
-    bool isCommandLogEnabled(const std::string &dir, int cmdIndex);
-    void setCommandLogEnabled(const std::string &dir, int cmdIndex,
+    bool isCommandLogEnabled(const std::string& dir, int cmdIndex);
+    void setCommandLogEnabled(const std::string& dir, int cmdIndex,
                               bool enabled);
 
     // ========== 新增：命令别名管理 ==========
-    std::string getCommandAlias(const std::string &dir, int cmdIndex);
-    void setCommandAlias(const std::string &dir, int cmdIndex,
-                         const std::string &alias);
-    std::string getEffectiveCommand(const std::string &dir, int cmdIndex);
+    std::string getCommandAlias(const std::string& dir, int cmdIndex);
+    void setCommandAlias(const std::string& dir, int cmdIndex,
+                         const std::string& alias);
+    std::string getEffectiveCommand(const std::string& dir, int cmdIndex);
     //    std::pair<std::string, std::string> getCommandIndexFromAlias(
     //        const std::string &alias);
 
     // ========== 新增：命令哈希管理 ==========
-    std::string computeHash(const std::string &text);
-    std::string computeCommandHash(const std::string &dir, int cmdIndex);
-    std::string getCommandHash(const std::string &dir, int cmdIndex);
-    void setCommandHash(const std::string &dir, int cmdIndex,
-                        const std::string &hash);
-    bool verifyCommandHash(const std::string &dir, int cmdIndex);
+    std::string computeHash(const std::string& text);
+    std::string computeCommandHash(const std::string& dir, int cmdIndex);
+    std::string getCommandHash(const std::string& dir, int cmdIndex);
+    void setCommandHash(const std::string& dir, int cmdIndex,
+                        const std::string& hash);
+    bool verifyCommandHash(const std::string& dir, int cmdIndex);
     bool verifyAllCommandsHash();
-    void syncCommandHash(const std::string &dir, int cmdIndex);
+    void syncCommandHash(const std::string& dir, int cmdIndex);
     void syncAllCommandsHash();
-    int getCommandIndex(const std::string &dir, const std::string &commandStr);
+    int getCommandIndex(const std::string& dir, const std::string& commandStr);
 
 private:
     // 辅助私有方法：获取命令对象的引用（用于修改配置）
-    Json::Value &getCommandObject(const std::string &dir, int cmdIndex);
+    Json::Value& getCommandObject(const std::string& dir, int cmdIndex);
     // 配置格式升级（旧字符串数组 → 新对象数组）
-    void upgradeConfigFormat(Json::Value &config);
+    void upgradeConfigFormat(Json::Value& config) const;
 };
 
 class Editor

@@ -17,14 +17,11 @@
 #include <sys/stat.h>
 
 #include <algorithm>
-#include <chrono>
 #include <ctime>
 #include <fstream>
 #include <functional>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
-#include <map>
 #include <sstream>
 #include <string>
 
@@ -237,7 +234,7 @@ void JsonFormatter::writeObject(const Json::Value& obj, int extraIndent,
 File::File() { CONFIG_FILE = Achieve::CONFIG_FILE; }
 
 // 升级旧配置格式到新格式（字符串数组 → 对象数组）
-void File::upgradeConfigFormat(Json::Value& config)
+void File::upgradeConfigFormat(Json::Value& config) const
 {
     bool changed = false;
     Json::Value& paths = config["path"];
@@ -274,7 +271,7 @@ void File::upgradeConfigFormat(Json::Value& config)
     }
 }
 
-Json::Value File::loadConfig()
+Json::Value File::loadConfig() const
 {
     std::ifstream file(CONFIG_FILE);
     if (!file.is_open())
@@ -310,7 +307,7 @@ Json::Value File::loadConfig()
     return config;
 }
 
-void File::saveConfig(const Json::Value& config)
+void File::saveConfig(const Json::Value& config) const
 {
     std::ofstream file(CONFIG_FILE);
     if (!file.is_open())
@@ -446,7 +443,8 @@ void File::load_key_order()
     }
 }
 
-std::vector<std::string> File::get_valid_directories(const Json::Value& paths)
+std::vector<std::string> File::get_valid_directories(
+    const Json::Value& paths) const
 {
     std::vector<std::string> validDirs;
 
@@ -463,7 +461,7 @@ std::vector<std::string> File::get_valid_directories(const Json::Value& paths)
 }
 
 int File::get_directory_index_by_display_number(int display_num,
-                                                const Json::Value& paths)
+                                                const Json::Value& paths) const
 {
     std::vector<std::string> validDirs = get_valid_directories(paths);
 
@@ -487,7 +485,7 @@ int File::get_directory_index_by_display_number(int display_num,
 }
 
 int File::get_display_number_by_directory_index(int orig_index,
-                                                const Json::Value& paths)
+                                                const Json::Value& paths) const
 {
     if (orig_index < 0 ||
         orig_index >= static_cast<int>(path_keys_order.size()))
@@ -824,26 +822,50 @@ int File::getCommandIndex(const std::string& dir, const std::string& commandStr)
 
 Editor::Editor() = default;
 
-std::string Editor::findInPath(const std::string& program) {
-    if (program.empty()) return {};
-    if (program.find('/') != std::string::npos) return access(program.c_str(), X_OK) == 0 ? program : std::string{};
+std::string Editor::findInPath(const std::string& program)
+{
+    if (program.empty())
+        return {};
+    if (program.find('/') != std::string::npos)
+        return access(program.c_str(), X_OK) == 0 ? program : std::string{};
     const char* pathEnvironment = std::getenv("PATH");
-    if (!pathEnvironment) return {};
-    std::istringstream paths(pathEnvironment); std::string directory;
-    while (std::getline(paths, directory, ':')) {
-        if (directory.empty()) directory = ".";
+    if (!pathEnvironment)
+        return {};
+    std::istringstream paths(pathEnvironment);
+    std::string directory;
+    while (std::getline(paths, directory, ':'))
+    {
+        if (directory.empty())
+            directory = ".";
         const std::string candidate = directory + "/" + program;
-        if (access(candidate.c_str(), X_OK) == 0) return candidate;
+        if (access(candidate.c_str(), X_OK) == 0)
+            return candidate;
     }
     return {};
 }
 
-std::string Editor::getEditor() {
+std::string Editor::getEditor()
+{
     const std::string configured = config["editor"].asString();
-    if (!configured.empty()) return configured;
-    for (const char* variable : {"VISUAL", "EDITOR"}) { const char* value = std::getenv(variable); if (value && *value) return value; }
-    for (const std::string& candidate : {"sensible-editor", "editor", "vi"}) { const std::string resolved = findInPath(candidate); if (!resolved.empty()) return resolved; }
+    if (!configured.empty())
+        return configured;
+    for (const char* variable : {"VISUAL", "EDITOR"})
+    {
+        const char* value = std::getenv(variable);
+        if (value && *value)
+            return value;
+    }
+    for (const char* candidate : {"sensible-editor", "editor", "vi"})
+    {
+        const std::string resolved = findInPath(candidate);
+        if (!resolved.empty())
+            return resolved;
+    }
     return {};
 }
 
-void Editor::setEditor(const std::string& newEditor) { config["editor"] = newEditor; file.saveConfig(config); }
+void Editor::setEditor(const std::string& newEditor)
+{
+    config["editor"] = newEditor;
+    file.saveConfig(config);
+}
