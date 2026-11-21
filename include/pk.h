@@ -99,7 +99,8 @@ public:
                     std::string& directory, int& cmd_idx);
 
     void parseRun(const ParseArgs& args_struct);
-    void runFile(const std::string& cmd_index = "");
+    void runFile(const std::string& cmd_index = "",
+                 const std::string& extra = "");
 
     // 输出 shell 补全候选（供 shell/pk.bash / _pk / pk.fish 使用）。
     void printCompletions(const std::string& kind,

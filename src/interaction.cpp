@@ -222,10 +222,34 @@ void Interaction::main(int argc, char** argv)
         }
         else if (option == "-r" || option == "--run" || option == "run")
         {
-            // `pk run [index]`: pre-load the recorded command into the
-            // default editor, let the user modify it, then execute it.
-            const std::string index = (argc > 2) ? argv[2] : "";
-            pk.runFile(index);
+            // `pk run [index] [extra...]`: pre-load the recorded command (if
+            // an index/alias was given) into the default editor, let the user
+            // modify it, then execute it as an ad-hoc external command.
+            std::string index;
+            std::string extra;
+            if (argc > 2)
+            {
+                if (argv[2][0] == '-')
+                {
+                    for (int i = 2; i < argc; ++i)
+                    {
+                        if (!extra.empty())
+                            extra += " ";
+                        extra += argv[i];
+                    }
+                }
+                else
+                {
+                    index = argv[2];
+                    for (int i = 3; i < argc; ++i)
+                    {
+                        if (!extra.empty())
+                            extra += " ";
+                        extra += argv[i];
+                    }
+                }
+            }
+            pk.runFile(index, extra);
         }
         else if (option == "completion" || option == "complete")
         {

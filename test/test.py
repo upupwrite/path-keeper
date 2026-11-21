@@ -656,3 +656,125 @@ def test_command_start_finish_marker_count(setup_home_and_cleanup):
         config = read_config(home)
         assert tmp_dir in config["path"]
         assert len(config["path"][tmp_dir]) == 1
+
+
+# ================================================================
+# run mode (editable ad-hoc external command)
+# ================================================================
+
+def make_fake_editor(home):
+    """Create an editor that replaces the buffer with $PK_EDIT_CONTENT."""
+    editor = Path(home) / "fake-run-editor"
+    editor.write_text('#!/bin/sh\nprintf \'%s\' "$PK_EDIT_CONTENT" > "$1"\n')
+    editor.chmod(0o755)
+    return editor
+
+
+def run_editor_env(editor, content):
+    return {"VISUAL": str(editor), "EDITOR": "", "PK_EDIT_CONTENT": content}
+
+
+def test_run_index_edits_then_executes(setup_home_and_cleanup):
+    """pk run <index> executes the edited buffer without changing the record."""
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\necho original\n", cwd=tmp_dir)
+
+        result = run_pk("run", "1.1", env=run_editor_env(editor, "echo edited"))
+        assert result.returncode == 0, result.stderr
+        assert "edited" in result.stdout
+
+        config = read_config(home)
+        assert config["path"][tmp_dir][0]["cmd"] == "echo original"
+
+
+def test_run_without_index_uses_given_directory(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        result = run_pk("run", input_text=f"{tmp_dir}\n",
+                        env=run_editor_env(editor, "pwd"))
+        assert result.returncode == 0, result.stderr
+        assert tmp_dir in result.stdout
+
+
+def test_run_invalid_index(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    result = run_pk("run", "99.99",
+                    env=run_editor_env(editor, "echo should-not-run"))
+    assert result.returncode == 0
+    combined = result.stdout + result.stderr
+    assert "无效编号" in combined or "Invalid" in combined
+    assert "should-not-run" not in result.stdout
+
+
+def test_run_missing_directory(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\necho gone\n", cwd=tmp_dir)
+
+    result = run_pk("run", "1.1",
+                    env=run_editor_env(editor, "echo should-not-run"))
+    assert result.returncode == 0
+    combined = result.stdout + result.stderr
+    assert "目标目录不存在" in combined or "not exist" in combined.lower()
+    assert "should-not-run" not in result.stdout
+
+
+def test_run_blank_editor_buffer_cancels(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\necho original\n", cwd=tmp_dir)
+
+        result = run_pk("run", "1.1",
+                        env=run_editor_env(editor, "   "))
+        assert result.returncode == 0
+        combined = result.stdout + result.stderr
+        assert "编辑器未返回任何内容" in combined or "cancel" in combined.lower()
+        assert "original" not in result.stdout
+
+
+def test_run_appends_extra_arguments(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\necho original\n", cwd=tmp_dir)
+
+        result = run_pk("run", "1.1", "alpha", "beta",
+                        env=run_editor_env(editor, "echo edited"))
+        assert result.returncode == 0, result.stderr
+        assert "edited alpha beta" in result.stdout
+
+
+def test_run_forwards_piped_stdin(setup_home_and_cleanup):
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\ncat\n", cwd=tmp_dir)
+
+        result = run_pk("run", "1.1", input_text="piped-input\n",
+                        env=run_editor_env(editor, "cat"), timeout=5)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.count("piped-input") == 1
+
+
+def test_run_falls_back_when_configured_editor_is_missing(setup_home_and_cleanup):
+    """A stale editor path in the config must not block run mode."""
+    home = setup_home_and_cleanup
+    editor = make_fake_editor(home)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        run_pk("-a", input_text=f"{tmp_dir}\necho original\n", cwd=tmp_dir)
+
+        config = read_config(home)
+        config["editor"] = "/definitely/missing/editor"
+        write_config(home, config)
+
+        result = run_pk("run", "1.1",
+                        env=run_editor_env(editor, "echo fallback-editor"))
+        assert result.returncode == 0, result.stderr
+        assert "fallback-editor" in result.stdout
+        assert "not found" in result.stderr.lower()

@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <algorithm>
+#include <cctype>
 #include <ctime>
 #include <fstream>
 #include <functional>
@@ -76,6 +77,53 @@ struct JsonEscape
         }
     }
 };
+
+// Return the executable part of an editor command line, honouring simple
+// quoting/escaping.  `vim -f` -> `vim`, `"/opt/my editor" -f` -> `/opt/my editor`.
+std::string firstCommandToken(const std::string& command)
+{
+    std::string token;
+    bool in_single_quote = false;
+    bool in_double_quote = false;
+    bool escaped = false;
+
+    for (const char ch : command)
+    {
+        if (escaped)
+        {
+            token.push_back(ch);
+            escaped = false;
+            continue;
+        }
+        if (ch == '\\' && !in_single_quote)
+        {
+            escaped = true;
+            continue;
+        }
+        if (ch == '\'' && !in_double_quote)
+        {
+            in_single_quote = !in_single_quote;
+            continue;
+        }
+        if (ch == '"' && !in_single_quote)
+        {
+            in_double_quote = !in_double_quote;
+            continue;
+        }
+        if (std::isspace(static_cast<unsigned char>(ch)) && !in_single_quote &&
+            !in_double_quote)
+        {
+            if (!token.empty())
+            {
+                return token;
+            }
+            continue;
+        }
+        token.push_back(ch);
+    }
+
+    return token;
+}
 }  // namespace
 
 // 辅助类：JSON格式化器
@@ -857,20 +905,73 @@ std::string Editor::findInPath(const std::string& program)
 
 std::string Editor::getEditor()
 {
+    // A configured editor may become stale (for example after removing a
+    // manually installed binary).  Treat entries whose executable cannot be
+    // found as unavailable and fall back to the system default instead of
+    // failing every run with "Editor exited unsuccessfully."
+    const auto is_available = [this](const std::string& candidate)
+    {
+        const std::string program = firstCommandToken(candidate);
+        return !program.empty() && !findInPath(program).empty();
+    };
+
     const std::string configured = config["editor"].asString();
     if (!configured.empty())
-        return configured;
+    {
+        if (is_available(configured))
+        {
+            return configured;
+        }
+        std::cerr << Colors::YELLOW << "Configured editor '" << configured
+                  << "' was not found; falling back to the system default."
+                  << Colors::RESET << std::endl;
+    }
+
     for (const char* variable : {"VISUAL", "EDITOR"})
     {
         const char* value = std::getenv(variable);
         if (value && *value)
-            return value;
+        {
+            if (is_available(value))
+            {
+                return value;
+            }
+            std::cerr << Colors::YELLOW << variable << " points to an unavailable "
+                      << "editor ('" << value << "'); ignoring it."
+                      << Colors::RESET << std::endl;
+        }
     }
-    for (const char* candidate : {"sensible-editor", "editor", "vi"})
+
+    // If the configured command was an absolute path whose basename is still
+    // available (e.g. /usr/local/bin/nvim removed, but /usr/bin/nvim exists),
+    // prefer that over a completely different default editor.
+    if (!configured.empty())
+    {
+        const std::string program = firstCommandToken(configured);
+        const std::string::size_type slash = program.find_last_of('/');
+        if (slash != std::string::npos)
+        {
+            const std::string basename = program.substr(slash + 1);
+            if (!basename.empty() && !findInPath(basename).empty())
+            {
+                std::string replacement = basename;
+                if (configured.compare(0, program.size(), program) == 0)
+                {
+                    replacement += configured.substr(program.size());
+                }
+                return replacement;
+            }
+        }
+    }
+
+    for (const char* candidate : {"sensible-editor", "editor", "vi", "vim",
+                                  "nvim", "nano"})
     {
         const std::string resolved = findInPath(candidate);
         if (!resolved.empty())
+        {
             return resolved;
+        }
     }
     return {};
 }

@@ -15,11 +15,10 @@
 #include "info.h"
 
 #include <iostream>
-#include <iterator>
 
 #include "colors.h"
 
-const std::string VERSION = "2.5.4";
+const std::string VERSION = "2.5.5";
 
 void showVersion(bool verbose)
 {
@@ -33,7 +32,7 @@ void showVersion(bool verbose)
         std::cerr << "  Build date:   " << BUILD_DATE << "\n";
         std::cerr << "  Compiler:     " << COMPILER << "\n";
         std::cerr << "  Architecture: "
-                  << (sizeof(void *) == 8 ? "64-bit" : "32-bit") << "\n\n";
+                  << (sizeof(void*) == 8 ? "64-bit" : "32-bit") << "\n\n";
     }
 
     std::cerr << "This program is free software: you can redistribute it "

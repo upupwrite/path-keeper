@@ -99,6 +99,46 @@ std::vector<std::string> splitCommandLine(const std::string& command)
 
 }  // namespace
 
+// True when `path` is an existing directory.  Run mode executes an edited
+// command inside the target directory, so this check is done before opening the
+// editor to avoid a silent no-op (or a wasted editor session) afterwards.
+static bool isExistingDirectory(const std::string& path)
+{
+    if (path.empty())
+    {
+        return false;
+    }
+    std::error_code error;
+    return fs::is_directory(fs::path(path), error) && !error;
+}
+
+// A whitespace-only editor buffer is equivalent to cancelling: there is no
+// command to execute.
+static bool isBlank(const std::string& text)
+{
+    return std::all_of(text.begin(), text.end(), [](unsigned char ch)
+                       { return std::isspace(ch) != 0; });
+}
+
+// Append ad-hoc arguments supplied on the command line to the command coming
+// from the editor, keeping exactly one separating space.
+static std::string appendArguments(const std::string& command,
+                                   const std::string& extra)
+{
+    if (extra.empty())
+    {
+        return command;
+    }
+    std::string result = command;
+    if (!result.empty() &&
+        !std::isspace(static_cast<unsigned char>(result.back())))
+    {
+        result.push_back(' ');
+    }
+    result += extra;
+    return result;
+}
+
 // 归一化路径：展开 ~，转为绝对路径，去除尾部斜杠
 static std::string normalizePath(const std::string& input,
                                  const std::string& cwd)
@@ -169,6 +209,15 @@ std::string PathKeeper::runEditorForCommands(const std::string& initialContent)
         std::cerr << Colors::RED << "No usable system editor found. Set VISUAL/EDITOR or run 'pk config -editor <command>'." << Colors::RESET << std::endl;
         return {};
     }
+    const std::vector<std::string> editorArguments =
+        splitCommandLine(editorCommand);
+    if (editorArguments.empty())
+    {
+        std::cerr << Colors::RED
+                  << "The configured editor command is empty or invalid."
+                  << Colors::RESET << std::endl;
+        return {};
+    }
     char temporaryPath[] = "/tmp/path-keeper-edit-XXXXXX";
     const int descriptor = mkstemp(temporaryPath);
     if (descriptor < 0) { std::cerr << Colors::RED << "Unable to create editor temporary file." << Colors::RESET << std::endl; return {}; }
@@ -192,7 +241,7 @@ std::string PathKeeper::runEditorForCommands(const std::string& initialContent)
     pid_t pid = fork();
     if (pid == 0)
     {
-        std::vector<std::string> argv = splitCommandLine(editorCommand);
+        std::vector<std::string> argv = editorArguments;
         argv.push_back(temporaryPath);
         std::vector<char*> cargs;
         cargs.reserve(argv.size() + 1);
@@ -335,9 +384,9 @@ void PathKeeper::addRecord(bool use_editor)
         << Colors::RESET << std::endl;
 }
 
-void PathKeeper::runFile(const std::string& cmd_index)
+void PathKeeper::runFile(const std::string& cmd_index,
+                         const std::string& extra)
 {
-    use_pty = true;
     std::string directory;
     std::string initial_content;
 
@@ -364,11 +413,6 @@ void PathKeeper::runFile(const std::string& cmd_index)
                       << Colors::RESET << std::endl;
             return;
         }
-        std::cerr << Colors::GREEN
-                  << QCoreApplication::translate("runFile",
-                                                 "正在默认编辑器中编辑命令...")
-                         .toStdString()
-                  << Colors::RESET << std::endl;
     }
     else
     {
@@ -391,8 +435,27 @@ void PathKeeper::runFile(const std::string& cmd_index)
         directory = normalizePath(input, cwd);
     }
 
-    auto command = runEditorForCommands(initial_content);
-    if (command.empty())
+    if (!isExistingDirectory(directory))
+    {
+        std::cerr << Colors::RED
+                  << QCoreApplication::translate("runFile",
+                                                 "目标目录不存在!")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
+
+    if (!initial_content.empty())
+    {
+        std::cerr << Colors::GREEN
+                  << QCoreApplication::translate("runFile",
+                                                 "正在默认编辑器中编辑命令...")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+    }
+
+    std::string command = runEditorForCommands(initial_content);
+    if (command.empty() || isBlank(command))
     {
         std::cerr << Colors::YELLOW
                   << QCoreApplication::translate(
@@ -401,7 +464,13 @@ void PathKeeper::runFile(const std::string& cmd_index)
                   << Colors::RESET << std::endl;
         return;
     }
-    shell.shellCommand(command, directory, false, true, use_pty);
+
+    command = appendArguments(command, extra);
+
+    // Run mode is an ad-hoc external-command runner: execute the edited buffer
+    // directly (never emit a shell script for the pk.sh wrapper to eval) so it
+    // behaves exactly like running the command in a normal shell.
+    shell.shellCommand(command, directory, false, true, true);
 }
 
 void PathKeeper::runRecent()

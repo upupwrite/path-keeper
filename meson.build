@@ -1,7 +1,7 @@
 project(
   'path-keeper',
   'cpp',
-  version: '2.5.4',
+  version: '2.5.5',
   license: 'GPL-3.0-or-later',
   default_options: [
     'cpp_std=c++20',

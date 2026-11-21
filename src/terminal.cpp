@@ -22,7 +22,9 @@
 #include <termios.h>
 #include <unistd.h>
 
+#include <cerrno>
 #include <cstdlib>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -172,6 +174,8 @@ static void runInProcess(const std::string& command, const std::string& dir,
         const std::string resolved_dir = resolveDir(dir);
         if (chdir(resolved_dir.c_str()) != 0)
         {
+            std::cerr << "pk: cannot change directory to " << resolved_dir
+                      << ": " << std::strerror(errno) << std::endl;
             _exit(127);
         }
 
@@ -199,13 +203,29 @@ static void runInProcess(const std::string& command, const std::string& dir,
             termios_saved = true;
         }
     }
+    else if (!stdin_is_tty)
+    {
+        // Input comes from a pipe or file: do not let the PTY line discipline
+        // echo it back, otherwise every line appears twice (once echoed, once
+        // printed by the command), unlike a normal external command.
+        struct termios child_termios{};
+        if (tcgetattr(master_fd, &child_termios) == 0)
+        {
+            child_termios.c_lflag &= ~ECHO;
+            tcsetattr(master_fd, TCSANOW, &child_termios);
+        }
+    }
 
     // Multiplex stdin (parent -> child) and PTY output (child -> parent).
+    //
+    // stdin must be forwarded even when it is a pipe rather than a TTY (tests,
+    // `echo data | pk run ...`, etc.).  Previously only TTY stdin was
+    // forwarded, which made commands that read stdin hang forever.
     struct pollfd fds[2] = {
         {STDIN_FILENO, POLLIN, 0},
         {master_fd, POLLIN, 0},
     };
-    bool stdin_open = stdin_is_tty;
+    bool stdin_open = true;
     char buffer[4096];
 
     while (true)
@@ -219,11 +239,15 @@ static void runInProcess(const std::string& command, const std::string& dir,
         const int ret = poll(fds, 2, -1);
         if (ret < 0)
         {
+            if (errno == EINTR)
+            {
+                continue;
+            }
             break;
         }
 
         // Forward user input to the child PTY.
-        if (fds[0].revents & POLLIN)
+        if (fds[0].fd != -1 && fds[0].revents != 0)
         {
             const ssize_t n = read(STDIN_FILENO, buffer, sizeof(buffer));
             if (n > 0)
@@ -233,8 +257,20 @@ static void runInProcess(const std::string& command, const std::string& dir,
                     // The child may have already exited; ignore.
                 }
             }
+            else if (n < 0 && errno == EINTR)
+            {
+                // Retry on the next poll iteration.
+            }
             else
             {
+                // EOF (or an unrecoverable read error).  Signal EOF to the
+                // child through the PTY so interactive readers such as `cat`
+                // terminate instead of waiting for more input.
+                const char end_of_file = 0x04;
+                if (write(master_fd, &end_of_file, 1) < 0)
+                {
+                    // Child already gone; ignore.
+                }
                 stdin_open = false;
                 fds[0].fd = -1;
             }
