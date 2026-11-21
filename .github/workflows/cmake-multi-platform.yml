@@ -1,4 +1,4 @@
-name: CMake Build & Release
+name: Meson Build & Release
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write   # 用于创建 Release
 
 jobs:
-  # ---------- 原有构建与测试（可选保留） ----------
+  # ---------- 构建与测试（非 tag 触发） ----------
   build:
     if: github.event_name != 'push' || !startsWith(github.ref, 'refs/tags/')
     runs-on: ${{ matrix.os }}
@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        build_type: [Release]
+        build_type: [release]
         c_compiler: [gcc, clang]
         include:
           - os: ubuntu-latest
@@ -38,23 +38,20 @@ jobs:
           sudo apt-get install -y \
             libjsoncpp-dev libreadline-dev \
             qt6-base-dev qt6-tools-dev qt6-l10n-tools \
-            pkg-config python3-pytest
+            pkg-config python3-pytest meson ninja
 
-      - name: Configure CMake
-        run: >
-          cmake -B build
-          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DBUILD_TESTS=ON
-          -S .
+      - name: Configure Meson
+        run: |
+          CC=${{ matrix.c_compiler }} CXX=${{ matrix.cpp_compiler }} \
+            meson setup build \
+              --buildtype=${{ matrix.build_type }} \
+              -Dbuild_tests=true
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }}
+        run: meson compile -C build
 
       - name: Test
-        working-directory: build
-        run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
+        run: meson test -C build --print-errorlogs
 
   # ---------- 构建 Debian 包 ----------
   build-deb:
@@ -69,23 +66,64 @@ jobs:
           sudo apt-get install -y \
             libjsoncpp-dev libreadline-dev \
             qt6-base-dev qt6-tools-dev qt6-l10n-tools \
-            pkg-config python3-pytest cmake
+            pkg-config python3-pytest meson ninja \
+            dpkg-dev
 
-      - name: Configure CMake
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON
+      - name: Configure & build
+        run: |
+          meson setup build \
+            --buildtype=release \
+            --prefix=/usr \
+            -Dbuild_tests=true
+          meson compile -C build
+          meson test -C build --print-errorlogs
 
-      - name: Build
-        run: cmake --build build --config Release
+      - name: Extract project version
+        id: version
+        run: |
+          VERSION=$(grep -m1 "version:" meson.build \
+            | sed -E "s/.*version:[[:space:]]*'([0-9.]+)'.*/\1/")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
 
-      - name: Package with CPack (DEB)
-        working-directory: build
-        run: cpack -G DEB
+      - name: Stage install
+        run: DESTDIR="$PWD/pkgdir" meson install -C build
+
+      - name: Compute runtime dependencies
+        id: shlibs
+        run: |
+          # 等价于 CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON
+          DEPS=$(dpkg-shlibdeps -O pkgdir/usr/bin/pk 2>/dev/null \
+                 | sed -n 's/^shlibs:Depends=//p')
+          # 兜底：若 shlibdeps 没输出（例如运行环境异常），给出常见依赖
+          [ -z "$DEPS" ] && DEPS="libjsoncpp25, libqt6core6, libreadline8"
+          echo "deps=$DEPS" >> "$GITHUB_OUTPUT"
+          echo "Runtime deps: $DEPS"
+
+      - name: Build DEB package
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DEPS="${{ steps.shlibs.outputs.deps }}"
+          mkdir -p pkgdir/DEBIAN
+          cat > pkgdir/DEBIAN/control <<EOF
+          Package: path-keeper
+          Version: $VERSION
+          Architecture: amd64
+          Maintainer: upupwrite <upupwrite@outlook.com>
+          Section: utils
+          Priority: optional
+          Depends: $DEPS
+          Description: P(ath) K(eeper) Command-Line Tool
+           A Multi-Functional Command-Line Utility.
+          EOF
+          dpkg-deb --build --root-owner-group pkgdir \
+            "path-keeper_${VERSION}_amd64.deb"
 
       - name: Upload DEB artifact
         uses: actions/upload-artifact@v4
         with:
           name: deb-package
-          path: build/*.deb
+          path: '*.deb'
 
   # ---------- 构建 Arch Linux 包 ----------
   build-arch:
@@ -101,30 +139,32 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm \
-            base-devel cmake qt6-base qt6-tools \
-            jsoncpp readline pkgconf python-pytest git rust
+            base-devel meson ninja qt6-base qt6-tools \
+            jsoncpp readline pkgconf python-pytest git
 
-      - name: Build with CMake
+      - name: Build with Meson
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=/usr
-          cmake --build build --config Release
+          meson setup build \
+            --buildtype=release \
+            --prefix=/usr \
+            -Dbuild_tests=true
+          meson compile -C build
+          meson test -C build --print-errorlogs
 
       - name: Create Arch package
         run: |
-          # 获取项目版本（根据你的项目调整）
-          VERSION=$(grep -m1 'project(' CMakeLists.txt | sed -E 's/.*VERSION[[:space:]]+([0-9.]+).*/\1/')
+          VERSION=$(grep -m1 "version:" meson.build \
+            | sed -E "s/.*version:[[:space:]]*'([0-9.]+)'.*/\1/")
           [ -z "$VERSION" ] && VERSION="0.0.0"
-          PKGNAME="path-keeper"   # 替换为你的软件包名
+          PKGNAME="path-keeper"
 
-          # 临时安装到 pkgdir
           mkdir -p pkgdir
-          DESTDIR="$PWD/pkgdir" cmake --install build
+          DESTDIR="$PWD/pkgdir" meson install -C build
 
-          # 生成 .PKGINFO
           cat > pkgdir/.PKGINFO <<EOF
           pkgname = $PKGNAME
           pkgver = $VERSION-1
-          pkgdesc = "Your package description"
+          pkgdesc = "P(ath) K(eeper) Command-Line Tool"
           arch = x86_64
           size = $(du -sb pkgdir | cut -f1)
           depend = qt6-base
@@ -132,9 +172,8 @@ jobs:
           depend = readline
           EOF
 
-          # 打包为 .pkg.tar.zst
           cd pkgdir
-          bsdtar -czf ../$PKGNAME-$VERSION-1-x86_64.pkg.tar.zst .PKGINFO *
+          bsdtar -czf "../$PKGNAME-$VERSION-1-x86_64.pkg.tar.zst" .PKGINFO *
           cd ..
 
       - name: Upload Arch artifact
@@ -166,4 +205,3 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
