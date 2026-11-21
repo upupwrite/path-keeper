@@ -25,6 +25,8 @@ This version includes important bug fixes and new features:
 - Hash Verification: Verify command integrity and detect configuration tampering
 - Shell Aliases: Create convenient shell aliases for frequently used command indices
 - Multi-Line Commands: Use the configured editor or the system default (`VISUAL`/`EDITOR`)
+- Shell Completion: bash/zsh/fish completion for commands, indices, aliases and directories
+- Editable Run: `pk run [index]` opens the recorded command in the default editor before executing it
 - Flexible Log Control: Per-command log setting overrides, with global default support
 - Dependencies: fzf and tmux (required for search and command logging features)
 
@@ -73,6 +75,8 @@ pk -c
 -v, --version       Show version information
 -V, --version-verbose
                      Show detailed version and build information
+-r, --run [index]   Edit a command with the default editor, then execute it
+                    (without an index, prompt for the target directory)
 -h, --help          Show detailed help information
 ```
 
@@ -120,6 +124,15 @@ Enable shell integration by sourcing pk.sh in your shell configuration file:
 source /usr/local/share/path-keeper/pk.sh
 ```
 
+The Meson install also provides shell completion scripts:
+
+- bash: `<prefix>/share/bash-completion/completions/pk`
+- zsh:  `<prefix>/share/zsh/site-functions/_pk`
+- fish: `<prefix>/share/fish/vendor_completions.d/pk.fish`
+
+They complete subcommands, command indices (`1.2`), aliases and directories.
+`pk completion <kind> [prefix]` is the backend used by these scripts.
+
 ## Installation Instructions
 
 ### Dependencies
@@ -162,6 +175,16 @@ Install to the system (requires sudo privileges):
 
 ```bash
 sudo make install
+```
+
+Meson is also supported:
+
+```bash
+meson setup build
+meson compile -C build
+sudo meson install -C build
+# optional: enable tests / disable completion installation
+meson setup build -Dbuild_tests=true -Dinstall_completions=false
 ```
 
 Enable shell integration by adding to ~/.bashrc or ~/.zshrc:

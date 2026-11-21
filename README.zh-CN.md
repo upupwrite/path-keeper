@@ -25,6 +25,8 @@ Path-keeper 是一个功能强大的命令行工具，用于轻松管理、组�
 - 哈希验证：验证命令完整性，检测配置篡改
 - Shell 别名：为常用命令索引创建便捷的 shell 别名
 - 多行命令：支持基于编辑器的多行命令输入
+- Shell 补全：支持 bash/zsh/fish 的命令、编号、别名和目录补全
+- 可编辑运行：`pk run [索引]` 会先用默认编辑器打开已记录的命令，编辑后再执行
 - 灵活日志控制：每条命令可单独覆盖日志设置，同时支持全局默认设置
 - 依赖 fzf 和 tmux（如需使用搜索和命令日志记录功能）
 
@@ -73,6 +75,8 @@ pk -c
 -v, --version       显示版本信息
 -V, --version-verbose
                      显示详细版本和构建信息
+-r, --run [索引]    使用默认编辑器编辑命令后执行
+                    （不带索引时先提示输入运行目录）
 -h, --help          显示详细帮助信息
 ```
 
@@ -119,6 +123,15 @@ pk.sh 脚本提供以下功能：
 ```bash
 source /usr/local/share/path-keeper/pk.sh
 ```
+
+Meson 安装时还会安装补全脚本：
+
+- bash：`<prefix>/share/bash-completion/completions/pk`
+- zsh： `<prefix>/share/zsh/site-functions/_pk`
+- fish：`<prefix>/share/fish/vendor_completions.d/pk.fish`
+
+可补全子命令、命令编号（如 `1.2`）、别名和目录。
+`pk completion <类型> [前缀]` 是这些脚本使用的补全后端。
 
 ## 安装说明
 
@@ -204,6 +217,16 @@ cd build
 cmake .. -DBUILD_TESTS=ON
 make
 ctest
+```
+
+Meson 构建方式：
+
+```bash
+meson setup build
+meson compile -C build
+sudo meson install -C build
+# 可选：启用测试 / 关闭补全安装
+meson setup build -Dbuild_tests=true -Dinstall_completions=false
 ```
 
 ## 卸载方法

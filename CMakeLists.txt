@@ -130,6 +130,14 @@ install(TARGETS pk DESTINATION bin)
 install(FILES ${QM_FILES} DESTINATION share/path-keeper/translations)
 install(FILES ${CMAKE_SOURCE_DIR}/shell/pk.sh DESTINATION share/path-keeper)
 
+# Shell 补全脚本（与 Meson 安装路径保持一致）
+install(FILES ${CMAKE_SOURCE_DIR}/shell/completions/pk.bash
+        DESTINATION share/bash-completion/completions RENAME pk)
+install(FILES ${CMAKE_SOURCE_DIR}/shell/completions/_pk
+        DESTINATION share/zsh/site-functions)
+install(FILES ${CMAKE_SOURCE_DIR}/shell/completions/pk.fish
+        DESTINATION share/fish/vendor_completions.d)
+
 # 创建卸载目标（仅 Unix 系统）
 if(UNIX)
   configure_file(

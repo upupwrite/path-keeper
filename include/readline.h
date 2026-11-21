@@ -24,6 +24,7 @@
 #include <cstring>
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -104,6 +105,27 @@ public:
         return result;
     }
 
+    // 读取路径/目录：只使用文件名补全，不混入系统命令。
+    static std::string read_line_path(const std::string &prompt)
+    {
+        completion_kind = CompletionKind::Path;
+        const std::string result = read_line(prompt);
+        completion_kind = CompletionKind::Auto;
+        return result;
+    }
+
+    // 从给定的候选列表（编号、别名、子命令……）中补全。
+    static std::string read_line_from_list(
+        const std::string &prompt, const std::vector<std::string> &candidates)
+    {
+        list_candidates = candidates;
+        completion_kind = CompletionKind::List;
+        const std::string result = read_line(prompt);
+        completion_kind = CompletionKind::Auto;
+        list_candidates.clear();
+        return result;
+    }
+
     // 获取系统命令列表（同原有实现）
     static std::vector<std::string> get_system_commands()
     {
@@ -161,6 +183,40 @@ public:
     }
 
 private:
+    enum class CompletionKind
+    {
+        Auto,
+        Path,
+        List,
+    };
+
+    static inline CompletionKind completion_kind = CompletionKind::Auto;
+    static inline std::vector<std::string> list_candidates;
+
+    // 候选列表补全生成器（编号 / 别名 / 子命令）
+    static char *list_generator(const char *text, int state)
+    {
+        static size_t list_index = 0;
+        static size_t text_len = 0;
+
+        if (state == 0)
+        {
+            list_index = 0;
+            text_len = strlen(text);
+        }
+
+        while (list_index < list_candidates.size())
+        {
+            const std::string &candidate = list_candidates[list_index++];
+            if (strncmp(candidate.c_str(), text, text_len) == 0)
+            {
+                return strdup(candidate.c_str());
+            }
+        }
+
+        return nullptr;
+    }
+
     // 命令补全生成器（同原有实现）
     static char *command_generator(const char *text, int state)
     {
@@ -216,11 +272,21 @@ private:
         return nullptr;
     }
 
-    // 主补全函数：智能识别命令/路径
+    // 主补全函数：智能识别命令/路径/候选列表
     static char **path_keeper_completion(const char *text, int start, int end)
     {
         (void)end;
         rl_attempted_completion_over = 1;
+
+        if (completion_kind == CompletionKind::List)
+        {
+            return rl_completion_matches(text, list_generator);
+        }
+
+        if (completion_kind == CompletionKind::Path)
+        {
+            return rl_completion_matches(text, filename_generator);
+        }
 
         // 行首位置：可能是命令，也可能是路径（包含 '/'）
         if (start == 0)

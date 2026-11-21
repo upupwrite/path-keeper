@@ -19,6 +19,7 @@
 
 #include <QCoreApplication>
 #include <algorithm>
+#include <cerrno>
 #include <cctype>
 #include <cstdlib>  // getenv
 #include <filesystem>
@@ -157,8 +158,10 @@ PathKeeper::PathKeeper()
     file.load_key_order();
 }
 
-// Launch the configured editor and return the edited buffer.
-std::string PathKeeper::runEditorForCommands()
+// Launch the configured editor and return the edited buffer.  The optional
+// initial content is pre-loaded into the temporary file, which lets `pk run`
+// edit an existing recorded command instead of starting from a blank buffer.
+std::string PathKeeper::runEditorForCommands(const std::string& initialContent)
 {
     Editor editor;
     const std::string editorCommand = editor.getEditor();
@@ -169,6 +172,21 @@ std::string PathKeeper::runEditorForCommands()
     char temporaryPath[] = "/tmp/path-keeper-edit-XXXXXX";
     const int descriptor = mkstemp(temporaryPath);
     if (descriptor < 0) { std::cerr << Colors::RED << "Unable to create editor temporary file." << Colors::RESET << std::endl; return {}; }
+    if (!initialContent.empty())
+    {
+        const char* data = initialContent.data();
+        size_t remaining = initialContent.size();
+        while (remaining > 0)
+        {
+            const ssize_t written = write(descriptor, data, remaining);
+            if (written <= 0)
+            {
+                break;
+            }
+            data += written;
+            remaining -= static_cast<size_t>(written);
+        }
+    }
     close(descriptor);
 
     pid_t pid = fork();
@@ -189,7 +207,19 @@ std::string PathKeeper::runEditorForCommands()
     }
 
     int status = 0;
-    waitpid(pid, &status, 0);
+    if (pid < 0)
+    {
+        std::cerr << Colors::RED << "Unable to launch the editor." << Colors::RESET << std::endl;
+        std::remove(temporaryPath);
+        return {};
+    }
+    while (waitpid(pid, &status, 0) < 0)
+    {
+        if (errno != EINTR)
+        {
+            break;
+        }
+    }
 
     std::string content;
     if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
@@ -202,6 +232,7 @@ std::string PathKeeper::runEditorForCommands()
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0)
     {
         std::cerr << Colors::RED << "Editor exited unsuccessfully." << Colors::RESET << std::endl;
+        return {};
     }
     return content;
 }
@@ -211,7 +242,7 @@ void PathKeeper::addRecord(bool use_editor)
     Json::Value config = file.loadConfig();
 
     // ---- 1. 目录提示（两种模式共用） ---------------------------------
-    std::string directory = ReadlineHelper::read_line(
+    std::string directory = ReadlineHelper::read_line_path(
         Colors::CYAN +
         QCoreApplication::translate("addRecord", "请输入记录目录:")
             .toStdString() +
@@ -304,27 +335,72 @@ void PathKeeper::addRecord(bool use_editor)
         << Colors::RESET << std::endl;
 }
 
-void PathKeeper::runFile()
+void PathKeeper::runFile(const std::string& cmd_index)
 {
     use_pty = true;
-    std::string directory = ReadlineHelper::read_line(
-        Colors::CYAN +
-        QCoreApplication::translate("addRecord", "请输入运行目录: ")
-            .toStdString() +
-        Colors::RESET);
+    std::string directory;
+    std::string initial_content;
 
-    if (directory.empty())
+    if (!cmd_index.empty())
     {
-        std::cerr
-            << Colors::YELLOW
-            << QCoreApplication::translate("runFile", "目录为~").toStdString()
-            << Colors::RESET << std::endl;
-        directory = "~";
+        // `pk run <index>`：先取出已记录的命令，用默认编辑器打开后再执行。
+        const Json::Value config = file.loadConfig();
+        int cmd_idx = -1;
+        if (!parseIndex(cmd_index, config["path"], directory, cmd_idx))
+        {
+            std::cerr << Colors::RED
+                      << QCoreApplication::translate("runFile", "无效编号!")
+                             .toStdString()
+                      << Colors::RESET << std::endl;
+            return;
+        }
+        initial_content = file.getEffectiveCommand(directory, cmd_idx);
+        if (initial_content.empty())
+        {
+            std::cerr << Colors::RED
+                      << QCoreApplication::translate("runFile",
+                                                     "命令无效或不存在!")
+                             .toStdString()
+                      << Colors::RESET << std::endl;
+            return;
+        }
+        std::cerr << Colors::GREEN
+                  << QCoreApplication::translate("runFile",
+                                                 "正在默认编辑器中编辑命令...")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+    }
+    else
+    {
+        std::string input = ReadlineHelper::read_line_path(
+            Colors::CYAN +
+            QCoreApplication::translate("addRecord", "请输入运行目录: ")
+                .toStdString() +
+            Colors::RESET);
+
+        if (input.empty())
+        {
+            std::cerr
+                << Colors::YELLOW
+                << QCoreApplication::translate("runFile", "目录为~")
+                       .toStdString()
+                << Colors::RESET << std::endl;
+            input = "~";
+        }
+        // 归一化为绝对路径（统一格式）
+        directory = normalizePath(input, cwd);
     }
 
-    // 归一化为绝对路径（统一格式）
-    directory = normalizePath(directory, cwd);
-    auto command = runEditorForCommands();
+    auto command = runEditorForCommands(initial_content);
+    if (command.empty())
+    {
+        std::cerr << Colors::YELLOW
+                  << QCoreApplication::translate(
+                         "runFile", "编辑器未返回任何内容,已取消!")
+                         .toStdString()
+                  << Colors::RESET << std::endl;
+        return;
+    }
     shell.shellCommand(command, directory, false, true, use_pty);
 }
 
@@ -662,10 +738,47 @@ std::string PathKeeper::getInputIndex(const std::string& provided_index,
     if (!provided_index.empty())
         return provided_index;
 
-    std::cerr << Colors::CYAN << prompt << Colors::RESET;
-    std::string index_str;
-    std::getline(std::cin, index_str);
-    return index_str;
+    return ReadlineHelper::read_line_from_list(
+        Colors::CYAN + prompt + Colors::RESET, indexCandidates());
+}
+
+std::vector<std::string> PathKeeper::indexCandidates() const
+{
+    std::vector<std::string> candidates;
+    const Json::Value config = file.loadConfig();
+    const Json::Value paths = config["path"];
+    const std::vector<std::string> directories =
+        file.get_valid_directories(paths);
+
+    for (std::size_t i = 0; i < directories.size(); ++i)
+    {
+        candidates.push_back(std::to_string(i + 1));
+        const Json::Value& commands = paths[directories[i]];
+        if (!commands.isArray())
+        {
+            continue;
+        }
+        for (Json::ArrayIndex j = 0; j < commands.size(); ++j)
+        {
+            candidates.push_back(std::to_string(i + 1) + "." +
+                                 std::to_string(j + 1));
+            const Json::Value& command = commands[j];
+            if (command.isObject() && command.isMember("alias") &&
+                command["alias"].isString())
+            {
+                const std::string alias = command["alias"].asString();
+                if (!alias.empty())
+                {
+                    candidates.push_back(alias);
+                }
+            }
+        }
+    }
+
+    std::sort(candidates.begin(), candidates.end());
+    candidates.erase(std::unique(candidates.begin(), candidates.end()),
+                     candidates.end());
+    return candidates;
 }
 
 // 支持别名作为索引
@@ -723,13 +836,19 @@ bool PathKeeper::parseIndex(const std::string& index_str,
                           << Colors::RESET << " " << directory << std::endl;
                 displayCommands(commands);
 
-                std::cerr << Colors::CYAN
-                          << QCoreApplication::translate("parseIndex",
-                                                         "请选择命令编号: ")
-                                 .toStdString()
-                          << Colors::RESET;
-                std::string cmd_idx_str;
-                std::getline(std::cin, cmd_idx_str);
+                std::vector<std::string> command_numbers;
+                for (Json::ArrayIndex k = 0; k < commands.size(); ++k)
+                {
+                    command_numbers.push_back(std::to_string(k + 1));
+                }
+                const std::string cmd_idx_str =
+                    ReadlineHelper::read_line_from_list(
+                        Colors::CYAN +
+                            QCoreApplication::translate(
+                                "parseIndex", "请选择命令编号: ")
+                                .toStdString() +
+                            Colors::RESET,
+                        command_numbers);
 
                 try
                 {
@@ -1044,6 +1163,85 @@ void PathKeeper::parseRun(const ParseArgs& args_struct)
         if (set_recent)
         {
             saveRecentRecord(config, directory, cmd_idx);
+        }
+    }
+}
+
+void PathKeeper::printCompletions(const std::string& kind,
+                                  const std::string& prefix) const
+{
+    std::vector<std::string> candidates;
+    if (kind == "commands")
+    {
+        candidates = {
+            "add",          "-a",          "--add",
+            "-e",           "--execute",   "-p",
+            "--point",      "-s",          "--show",
+            "-c",           "--configure", "-r",
+            "--run",        "run",         "search",
+            "log",          "--enable",    "--disable",
+            "global",       "config",      "-editor",
+            "alias",        "add",         "remove",
+            "list",         "install",     "completion",
+            "--pty",        "-P",          "--no-pty",
+            "-N",           "--version",   "-v",
+            "--version-verbose", "-V",     "--help",
+            "-h"};
+    }
+    else if (kind == "indices")
+    {
+        candidates = indexCandidates();
+    }
+    else if (kind == "aliases")
+    {
+        const Json::Value config = file.loadConfig();
+        const Json::Value paths = config["path"];
+        for (const std::string& directory :
+             paths.getMemberNames())
+        {
+            const Json::Value& commands = paths[directory];
+            if (!commands.isArray())
+            {
+                continue;
+            }
+            for (const Json::Value& command : commands)
+            {
+                if (command.isObject() && command.isMember("alias") &&
+                    command["alias"].isString())
+                {
+                    const std::string alias = command["alias"].asString();
+                    if (!alias.empty())
+                    {
+                        candidates.push_back(alias);
+                    }
+                }
+            }
+        }
+        std::sort(candidates.begin(), candidates.end());
+        candidates.erase(std::unique(candidates.begin(), candidates.end()),
+                         candidates.end());
+    }
+    else if (kind == "directories")
+    {
+        const Json::Value config = file.loadConfig();
+        candidates = file.get_valid_directories(config["path"]);
+    }
+    else if (kind == "editors")
+    {
+        candidates = {"vim", "nvim", "nano", "emacs", "vi", "code",
+                      "micro", "hx", "kak", "gedit", "kate"};
+    }
+
+    std::sort(candidates.begin(), candidates.end());
+    candidates.erase(std::unique(candidates.begin(), candidates.end()),
+                     candidates.end());
+
+    for (const std::string& candidate : candidates)
+    {
+        if (prefix.empty() ||
+            candidate.compare(0, prefix.size(), prefix) == 0)
+        {
+            std::cout << candidate << '\n';
         }
     }
 }

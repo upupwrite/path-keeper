@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include <string>
+#include <vector>
 
 #include "loadfile.h"
 #include "terminal.h"
@@ -73,7 +74,10 @@ private:
 
     void saveRecentRecord(Json::Value& config, const std::string& directory,
                           int cmd_idx);
-    std::string runEditorForCommands();
+    std::string runEditorForCommands(const std::string& initialContent = "");
+
+    // 供 readline 列表补全使用：编号（1、1.2…）与别名。
+    std::vector<std::string> indexCandidates() const;
 
 public:
     PathKeeper();
@@ -95,7 +99,11 @@ public:
                     std::string& directory, int& cmd_idx);
 
     void parseRun(const ParseArgs& args_struct);
-    void runFile();
+    void runFile(const std::string& cmd_index = "");
+
+    // 输出 shell 补全候选（供 shell/pk.bash / _pk / pk.fish 使用）。
+    void printCompletions(const std::string& kind,
+                          const std::string& prefix = "") const;
 
     void addAlias(const std::string& name, const std::string& indexStr);
     void removeAlias(const std::string& name);

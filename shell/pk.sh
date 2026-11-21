@@ -40,13 +40,16 @@ _pk_binary() {
 #
 # Commands that must NOT capture stdout:
 #   * `-a` / `add` / `search`  -> readline prompt only
-#   * `-r` / `--run`           -> launches the Rust editor (interactive
-#                                 UI) and then executes the buffer
-#                                 directly. Capturing stdout would
-#                                 swallow both the readline prompt and
-#                                 the editor UI, and eval would then
-#                                 try to re-run the editor's output as
-#                                 shell commands.
+#   * `-r` / `--run`           -> launches the default editor (VISUAL /
+#                                 EDITOR / ~/.pk.json editor) and then
+#                                 executes the edited buffer directly.
+#                                 Capturing stdout would swallow both the
+#                                 readline prompt and the editor UI, and
+#                                 eval would then try to re-run the
+#                                 editor's output as shell commands.
+#   * `completion` / `complete` -> emits completion candidates; the
+#                                 completion scripts consume this output
+#                                 directly, so it must never be eval'd.
 #
 pk() {
     # ------------------------------------------------------------------
@@ -69,7 +72,7 @@ pk() {
     #    would need eval.
     # ------------------------------------------------------------------
     case "${1:-}" in
-        -a|--add|add|search|-r|--run|run)
+        -a|--add|add|search|-r|--run|run|completion|complete)
             _pk_binary "$@"
             return $?
             ;;
@@ -109,3 +112,16 @@ pk() {
     _pk_binary "$@"
     return $?
 }
+
+# ---------------------------------------------------------------------------
+# Shell completion
+#
+# The completion scripts are installed by Meson to:
+#   bash: <prefix>/share/bash-completion/completions/pk
+#   zsh : <prefix>/share/zsh/site-functions/_pk
+#   fish: <prefix>/share/fish/vendor_completions.d/pk.fish
+#
+# bash-completion / zsh / fish load these automatically when installed in a
+# standard directory. For manual use:
+#   source /usr/local/share/bash-completion/completions/pk
+# ---------------------------------------------------------------------------

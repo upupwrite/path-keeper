@@ -1,0 +1,13 @@
+option(
+  'build_tests',
+  type: 'boolean',
+  value: false,
+  description: 'Build the tests (equivalent to BUILD_TESTS in CMake)',
+)
+
+option(
+  'install_completions',
+  type: 'boolean',
+  value: true,
+  description: 'Install bash/zsh/fish completion scripts',
+)

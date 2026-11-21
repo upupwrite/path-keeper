@@ -457,6 +457,17 @@ std::vector<std::string> File::get_valid_directories(
         }
     }
 
+    // 兼容紧凑格式（"path": {"dir": ...} 写在同一行）或手工编辑过的配置：
+    // 此时 load_key_order() 无法提取顺序，用 JSON 对象自身的成员顺序补齐。
+    for (const std::string& key : paths.getMemberNames())
+    {
+        if (std::find(validDirs.begin(), validDirs.end(), key) ==
+            validDirs.end())
+        {
+            validDirs.push_back(key);
+        }
+    }
+
     return validDirs;
 }
 

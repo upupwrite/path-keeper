@@ -222,7 +222,19 @@ void Interaction::main(int argc, char** argv)
         }
         else if (option == "-r" || option == "--run" || option == "run")
         {
-            pk.runFile();
+            // `pk run [index]`: pre-load the recorded command into the
+            // default editor, let the user modify it, then execute it.
+            const std::string index = (argc > 2) ? argv[2] : "";
+            pk.runFile(index);
+        }
+        else if (option == "completion" || option == "complete")
+        {
+            // Shell completion backend.  Emits one candidate per line so it
+            // can be consumed by bash/zsh/fish completion scripts.
+            const std::string kind = (argc > 2) ? argv[2] : "commands";
+            const std::string prefix = (argc > 3) ? argv[3] : "";
+            pk.printCompletions(kind, prefix);
+            return;
         }
         else if (option == "search")
         {
@@ -490,9 +502,13 @@ else if (option == "alias")
                       << "      pk search" << std::endl
                       << "      pk log [--enable|--disable] [global|index]"
                       << std::endl
+                      << "      pk run [index]" << std::endl
                       << "      pk config [-editor [editor]]" << std::endl
                       << "      pk alias add <name> <index> | remove <name> | "
                          "list | install"
+                      << std::endl
+                      << "      pk completion [commands|indices|aliases|"
+                         "directories|editors] [prefix]"
                       << std::endl
                       << "      pk -h | --help" << std::endl
                       << "      pk -v | --version" << std::endl;
