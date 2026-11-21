@@ -183,7 +183,7 @@ def test_execute_recent(setup_home_and_cleanup):
         result = run_pk("-e", "1.2")
         assert result.returncode == 0, f"stderr: {result.stderr}"
         stdout = result.stdout
-        assert "cd " + tmp_dir in stdout
+        assert f"cd '{tmp_dir}'" in stdout
         assert "make test" in stdout
         # 新逻辑：整块命令应被括号包裹成子 shell
         assert "(\n" in stdout or "(" in stdout
@@ -198,7 +198,7 @@ def test_execute_recent(setup_home_and_cleanup):
 
 def test_execute_multiline_subshell_wrapping(setup_home_and_cleanup):
     """
-    多行命令应被包成 `cd <dir> && ( ... )` 的形式，
+    多行命令应被包成 `cd '<dir>' && ( ... )` 的形式，
     保证所有行都在目标目录执行。
     """
     home = setup_home_and_cleanup
@@ -215,7 +215,7 @@ def test_execute_multiline_subshell_wrapping(setup_home_and_cleanup):
         assert result.returncode == 0, f"stderr: {result.stderr}"
         stdout = result.stdout
         # 关键：目录切换后应紧跟括号，整块包起来
-        assert f"cd {tmp_dir} && (" in stdout
+        assert f"cd '{tmp_dir}' && (" in stdout
         assert "echo A" in stdout
         assert "echo B" in stdout
 
@@ -293,7 +293,7 @@ def test_set_recent(setup_home_and_cleanup):
         result = run_pk(input_text="Y\n")
         assert result.returncode == 0, f"stderr: {result.stderr}"
         stdout = result.stdout
-        assert "cd " + dir2 in stdout
+        assert f"cd '{dir2}'" in stdout
         assert "cmdB" in stdout
         assert "cmdA" not in stdout
 
