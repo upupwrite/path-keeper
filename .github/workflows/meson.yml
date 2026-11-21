@@ -139,7 +139,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm \
-            base-devel meson ninja-build qt6-base qt6-tools \
+            base-devel meson ninja qt6-base qt6-tools \
             jsoncpp readline pkgconf python-pytest git
 
       - name: Build with Meson
