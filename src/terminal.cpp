@@ -27,6 +27,57 @@
 #include <iostream>
 #include <sstream>
 
+// ---------------------------------------------------------------------------
+// Quote `s` so it can be embedded in a shell command line as a single
+// argument. Embedded single quotes are escaped with the standard `'\''`
+// trick, which closes the quoted run, emits an escaped quote, then re-opens.
+// ---------------------------------------------------------------------------
+static std::string shellQuote(const std::string& s)
+{
+    std::string out;
+    out.reserve(s.size() + 2);
+    out.push_back('\'');
+    for (char c : s)
+    {
+        if (c == '\'')
+        {
+            out += "'\\''";
+        }
+        else
+        {
+            out.push_back(c);
+        }
+    }
+    out.push_back('\'');
+    return out;
+}
+
+// ---------------------------------------------------------------------------
+// Resolve a leading `~` / `~/...` in `dir` to $HOME, matching the expansion
+// that the old `cd <dir> && ...` prefix used to perform. An empty `dir`
+// also resolves to $HOME (what a bare `cd` did).
+// ---------------------------------------------------------------------------
+static std::string resolveDir(const std::string& dir)
+{
+    const char* home = std::getenv("HOME");
+    if (dir.empty())
+    {
+        return home ? std::string(home) : std::string(".");
+    }
+    if (dir == "~")
+    {
+        return home ? std::string(home) : dir;
+    }
+    if (dir.size() >= 2 && dir[0] == '~' && dir[1] == '/')
+    {
+        if (home)
+        {
+            return std::string(home) + dir.substr(1);
+        }
+    }
+    return dir;
+}
+
 Shell::Shell()
 {
     char buffer[1024];
@@ -42,25 +93,26 @@ Shell::Shell()
     file.load_key_order();
 }
 
-
-bool isTmuxAvailable() {
+bool isTmuxAvailable()
+{
     const char* path_env = std::getenv("PATH");
-    if (!path_env) return false;
+    if (!path_env)
+        return false;
 
     std::stringstream ss(path_env);
     std::string dir;
 
-    while (std::getline(ss, dir, ':')) {
+    while (std::getline(ss, dir, ':'))
+    {
         std::string candidate = dir + "/tmux";
-        // 检查文件是否存在且有可执行权限
-        if (access(candidate.c_str(), X_OK) == 0) {
+        // Check that the file exists and is executable.
+        if (access(candidate.c_str(), X_OK) == 0)
+        {
             return true;
         }
     }
     return false;
 }
-
-
 
 // ---------------------------------------------------------------------------
 // Execute a command directly inside the current process via a pseudo-terminal.
@@ -72,9 +124,17 @@ bool isTmuxAvailable() {
 //
 // Output is streamed in real time to stdout and, when `record` is true, also
 // appended to Achieve::LOG_FILE.
+//
+// SECURITY NOTES
+//   * `dir` is never concatenated into a shell command; the child calls
+//     chdir() on the resolved path. Its contents therefore cannot inject
+//     shell metacharacters into anything.
+//   * `command` IS the user-provided command that this tool exists to run
+//     through a shell; that is intentional functionality, so the static
+//     analyser warning on `execl` is explicitly suppressed below.
 // ---------------------------------------------------------------------------
-static void runInProcess(const std::string &exec_command,
-                         const std::string &log_prefix, bool record)
+static void runInProcess(const std::string& command, const std::string& dir,
+                         const std::string& log_prefix, bool record)
 {
     // Tell children they are running on a true-color capable terminal.
     setenv("COLORTERM", "truecolor", 1);
@@ -107,17 +167,27 @@ static void runInProcess(const std::string &exec_command,
 
     if (pid == 0)
     {
-        // Child: replace the image with /bin/sh -c "<command>".
-        execl("/bin/bash", "bash", "-c", exec_command.c_str(),
-              static_cast<char *>(nullptr));
+        // Child: change into `dir` first (never via a shell), then exec the
+        // shell so that the user-provided `command` is interpreted.
+        const std::string resolved_dir = resolveDir(dir);
+        if (chdir(resolved_dir.c_str()) != 0)
+        {
+            _exit(127);
+        }
+
+        // `command` is the user-supplied shell command this tool exists to
+        // run; executing it through `bash -c` is intentional. Suppress the
+        // command-injection warning, since the only alternative would be to
+        // remove the tool's core functionality.
+        // codeql[cpp/command-line-injection]
+        execl("/bin/bash", "bash", "-c", command.c_str(),
+              static_cast<char*>(nullptr));
         _exit(127);
     }
 
     // Parent: put the controlling terminal into raw mode so interactive
     // programs receive keystrokes byte-by-byte (arrow keys, Ctrl-C, ...).
-    struct termios saved_termios
-    {
-    };
+    struct termios saved_termios{};
     bool termios_saved = false;
     const bool stdin_is_tty = isatty(STDIN_FILENO);
     if (stdin_is_tty && tcgetattr(STDIN_FILENO, &saved_termios) == 0)
@@ -213,33 +283,32 @@ static void runInProcess(const std::string &exec_command,
     }
 }
 
-void Shell::shellCommand(const std::string &command, const std::string &dir,
+void Shell::shellCommand(const std::string& command, const std::string& dir,
                          const bool record, const bool self,
                          const bool non_shell)
 {
-    // 用子 shell 包裹命令，保证：
-    //   * 编辑器返回的多行命令整体都在 dir 中执行；
-    //   * cd 失败时整块命令不再执行，避免在错误目录下运行后续行。
-    const std::string wrapped_command =
-        "cd " + dir + " && (\n" + command + "\n)";
-
     // ======================= In-process execution =======================
     // non_shell == true: bypass tmux / external shell entirely and run the
-    // command directly through a PTY in the current process. No tmux check
-    // is performed and output is streamed in real time with true color.
+    // command directly through a PTY in the current process.
     if (non_shell)
     {
-        const std::string exec_command = wrapped_command;
         const std::string log_prefix = "[" + log.timestamp() + "]\n" +
                                        "DIR: " + dir + "\n" +
                                        "COMMAND: " + command + "\n";
-        runInProcess(exec_command, log_prefix, record);
+        runInProcess(command, dir, log_prefix, record);
         return;
     }
     // ====================================================================
 
-    // Legacy path: hand the command off to an external shell, optionally
-    // using tmux for capture. tmux detection is done lazily, once per process.
+    // Legacy path: build a shell one-liner and hand it off to an external
+    // shell. `dir` must be quoted so it cannot escape `cd` and inject
+    // additional commands. Empty `dir` keeps the original bare `cd` behaviour
+    // (which switches to $HOME).
+    const std::string cd_prefix =
+        dir.empty() ? std::string("cd") : "cd " + shellQuote(dir);
+    const std::string wrapped_command = cd_prefix + " && (\n" + command + "\n)";
+
+    // tmux detection is done lazily, once per process.
     static bool tmux_checked = false;
     static bool has_tmux = false;
     if (!tmux_checked)
@@ -257,22 +326,24 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
 
     if (std::empty(shell))
     {
-        shell_command = wrapped_command + " ; cd " + cwd;
+        shell_command = wrapped_command + " ; cd " + shellQuote(cwd);
     }
     else
     {
         shell_command = shell + " <<EOF\n" + wrapped_command + " ; cd " +
-                        cwd + "\nEOF";
+                        shellQuote(cwd) + "\nEOF";
     }
 
     if (!self && !std::empty(shell_command))
     {
         if (record && has_tmux)
         {
-            std::cout << "echo '\n"
-                      << log_prefix << "' >> " << log_file << " && "
-                      << "tmux pipe-pane 'cat >> " << log_file << "'&&"
-                      << shell_command << "\n"
+            // Quote both `log_prefix` (contains user data) and `log_file`
+            // so neither can break out of the surrounding single quotes.
+            std::cout << "echo " << shellQuote("\n" + log_prefix) << " >> "
+                      << shellQuote(log_file) << " && "
+                      << "tmux pipe-pane " << shellQuote("cat >> " + log_file)
+                      << "&&" << shell_command << "\n"
                       << "tmux pipe-pane" << std::endl;
         }
         else if (record && !has_tmux)
@@ -280,9 +351,9 @@ void Shell::shellCommand(const std::string &command, const std::string &dir,
             std::cerr
                 << "Warning: tmux not found, logging output not available."
                 << std::endl;
-            std::cout << "echo '\n"
-                      << log_prefix << "' >> " << log_file << " && "
-                      << shell_command << std::endl;
+            std::cout << "echo " << shellQuote("\n" + log_prefix) << " >> "
+                      << shellQuote(log_file) << " && " << shell_command
+                      << std::endl;
         }
         else
         {
