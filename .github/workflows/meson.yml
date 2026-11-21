@@ -38,7 +38,7 @@ jobs:
           sudo apt-get install -y \
             libjsoncpp-dev libreadline-dev \
             qt6-base-dev qt6-tools-dev qt6-l10n-tools \
-            pkg-config python3-pytest meson ninja
+            pkg-config python3-pytest meson ninja-build
 
       - name: Configure Meson
         run: |
@@ -66,7 +66,7 @@ jobs:
           sudo apt-get install -y \
             libjsoncpp-dev libreadline-dev \
             qt6-base-dev qt6-tools-dev qt6-l10n-tools \
-            pkg-config python3-pytest meson ninja \
+            pkg-config python3-pytest meson ninja-build \
             dpkg-dev
 
       - name: Configure & build
@@ -139,7 +139,7 @@ jobs:
         run: |
           pacman -Syu --noconfirm
           pacman -S --noconfirm \
-            base-devel meson ninja qt6-base qt6-tools \
+            base-devel meson ninja-build qt6-base qt6-tools \
             jsoncpp readline pkgconf python-pytest git
 
       - name: Build with Meson
