@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "loadfile.h"
@@ -79,6 +80,10 @@ private:
     // 供 readline 列表补全使用：编号（1、1.2…）与别名。
     std::vector<std::string> indexCandidates() const;
 
+    // 编号/别名及其对应的目录或命令，供带描述的补全使用。
+    std::vector<std::pair<std::string, std::string>>
+    indexCompletionEntries() const;
+
 public:
     PathKeeper();
     void addRecord(bool use_editor = false);
@@ -103,8 +108,10 @@ public:
                  const std::string& extra = "");
 
     // 输出 shell 补全候选（供 shell/pk.bash / _pk / pk.fish 使用）。
+    // describe 为 true 时，每行输出 "候选<TAB>描述"。
     void printCompletions(const std::string& kind,
-                          const std::string& prefix = "") const;
+                          const std::string& prefix = "",
+                          bool describe = false) const;
 
     void addAlias(const std::string& name, const std::string& indexStr);
     void removeAlias(const std::string& name);

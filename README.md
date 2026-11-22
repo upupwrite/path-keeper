@@ -131,7 +131,10 @@ The Meson install also provides shell completion scripts:
 - fish: `<prefix>/share/fish/vendor_completions.d/pk.fish`
 
 They complete subcommands, command indices (`1.2`), aliases and directories.
-`pk completion <kind> [prefix]` is the backend used by these scripts.
+`pk completion <kind> [prefix] [--describe]` is the backend used by these
+scripts. With `--describe`, index candidates are emitted as
+`index<TAB>command`, so shells that support descriptions (zsh, fish) show the
+command next to its index.
 
 ## Installation Instructions
 

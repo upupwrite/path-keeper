@@ -255,9 +255,27 @@ void Interaction::main(int argc, char** argv)
         {
             // Shell completion backend.  Emits one candidate per line so it
             // can be consumed by bash/zsh/fish completion scripts.
-            const std::string kind = (argc > 2) ? argv[2] : "commands";
-            const std::string prefix = (argc > 3) ? argv[3] : "";
-            pk.printCompletions(kind, prefix);
+            // --describe appends a TAB separated description (the command
+            // corresponding to an index) to each candidate line.
+            std::vector<std::string> positional;
+            bool describe = false;
+            for (int i = 2; i < argc; ++i)
+            {
+                const std::string a = argv[i];
+                if (a == "--describe" || a == "--with-description")
+                {
+                    describe = true;
+                }
+                else
+                {
+                    positional.push_back(a);
+                }
+            }
+            const std::string kind =
+                positional.size() > 0 ? positional[0] : "commands";
+            const std::string prefix =
+                positional.size() > 1 ? positional[1] : "";
+            pk.printCompletions(kind, prefix, describe);
             return;
         }
         else if (option == "search")

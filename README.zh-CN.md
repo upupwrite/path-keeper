@@ -131,7 +131,9 @@ Meson 安装时还会安装补全脚本：
 - fish：`<prefix>/share/fish/vendor_completions.d/pk.fish`
 
 可补全子命令、命令编号（如 `1.2`）、别名和目录。
-`pk completion <类型> [前缀]` 是这些脚本使用的补全后端。
+`pk completion <类型> [前缀] [--describe]` 是这些脚本使用的补全后端。
+加上 `--describe` 时，编号候选会以 `编号<TAB>命令` 的形式输出，支持描述的
+shell（zsh、fish）会在编号旁显示对应的命令。
 
 ## 安装说明
 

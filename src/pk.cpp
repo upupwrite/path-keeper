@@ -811,17 +811,30 @@ std::string PathKeeper::getInputIndex(const std::string& provided_index,
         Colors::CYAN + prompt + Colors::RESET, indexCandidates());
 }
 
-std::vector<std::string> PathKeeper::indexCandidates() const
+std::vector<std::pair<std::string, std::string>>
+PathKeeper::indexCompletionEntries() const
 {
-    std::vector<std::string> candidates;
+    std::vector<std::pair<std::string, std::string>> entries;
     const Json::Value config = file.loadConfig();
     const Json::Value paths = config["path"];
     const std::vector<std::string> directories =
         file.get_valid_directories(paths);
 
+    // 把命令中的换行/制表符压成空格，保证一行一个候选。
+    const auto describe = [](std::string text) {
+        for (char& ch : text)
+        {
+            if (ch == '\t' || ch == '\n' || ch == '\r')
+                ch = ' ';
+        }
+        return text;
+    };
+
     for (std::size_t i = 0; i < directories.size(); ++i)
     {
-        candidates.push_back(std::to_string(i + 1));
+        const std::string dir_index = std::to_string(i + 1);
+        entries.emplace_back(dir_index, describe(directories[i]));
+
         const Json::Value& commands = paths[directories[i]];
         if (!commands.isArray())
         {
@@ -829,20 +842,39 @@ std::vector<std::string> PathKeeper::indexCandidates() const
         }
         for (Json::ArrayIndex j = 0; j < commands.size(); ++j)
         {
-            candidates.push_back(std::to_string(i + 1) + "." +
-                                 std::to_string(j + 1));
             const Json::Value& command = commands[j];
+            std::string command_text;
+            if (command.isObject() && command.isMember("cmd") &&
+                command["cmd"].isString())
+            {
+                command_text = command["cmd"].asString();
+            }
+            else if (command.isString())
+            {
+                command_text = command.asString();
+            }
+
+            entries.emplace_back(dir_index + "." + std::to_string(j + 1),
+                                 describe(command_text));
+
             if (command.isObject() && command.isMember("alias") &&
                 command["alias"].isString())
             {
                 const std::string alias = command["alias"].asString();
                 if (!alias.empty())
-                {
-                    candidates.push_back(alias);
-                }
+                    entries.emplace_back(alias, describe(command_text));
             }
         }
     }
+
+    return entries;
+}
+
+std::vector<std::string> PathKeeper::indexCandidates() const
+{
+    std::vector<std::string> candidates;
+    for (const auto& entry : indexCompletionEntries())
+        candidates.push_back(entry.first);
 
     std::sort(candidates.begin(), candidates.end());
     candidates.erase(std::unique(candidates.begin(), candidates.end()),
@@ -1237,12 +1269,13 @@ void PathKeeper::parseRun(const ParseArgs& args_struct)
 }
 
 void PathKeeper::printCompletions(const std::string& kind,
-                                  const std::string& prefix) const
+                                  const std::string& prefix,
+                                  bool describe) const
 {
-    std::vector<std::string> candidates;
+    std::vector<std::pair<std::string, std::string>> candidates;
     if (kind == "commands")
     {
-        candidates = {
+        const std::vector<std::string> commands = {
             "add",          "-a",          "--add",
             "-e",           "--execute",   "-p",
             "--point",      "-s",          "--show",
@@ -1256,10 +1289,20 @@ void PathKeeper::printCompletions(const std::string& kind,
             "-N",           "--version",   "-v",
             "--version-verbose", "-V",     "--help",
             "-h"};
+        for (const std::string& command : commands)
+            candidates.emplace_back(command, "");
     }
     else if (kind == "indices")
     {
-        candidates = indexCandidates();
+        if (describe)
+        {
+            candidates = indexCompletionEntries();
+        }
+        else
+        {
+            for (const std::string& candidate : indexCandidates())
+                candidates.emplace_back(candidate, "");
+        }
     }
     else if (kind == "aliases")
     {
@@ -1281,36 +1324,49 @@ void PathKeeper::printCompletions(const std::string& kind,
                     const std::string alias = command["alias"].asString();
                     if (!alias.empty())
                     {
-                        candidates.push_back(alias);
+                        candidates.emplace_back(alias, "");
                     }
                 }
             }
         }
-        std::sort(candidates.begin(), candidates.end());
-        candidates.erase(std::unique(candidates.begin(), candidates.end()),
-                         candidates.end());
     }
     else if (kind == "directories")
     {
         const Json::Value config = file.loadConfig();
-        candidates = file.get_valid_directories(config["path"]);
+        for (const std::string& directory :
+             file.get_valid_directories(config["path"]))
+            candidates.emplace_back(directory, "");
     }
     else if (kind == "editors")
     {
-        candidates = {"vim", "nvim", "nano", "emacs", "vi", "code",
-                      "micro", "hx", "kak", "gedit", "kate"};
+        const std::vector<std::string> editors = {
+            "vim", "nvim", "nano", "emacs", "vi", "code",
+            "micro", "hx", "kak", "gedit", "kate"};
+        for (const std::string& editor : editors)
+            candidates.emplace_back(editor, "");
     }
 
-    std::sort(candidates.begin(), candidates.end());
-    candidates.erase(std::unique(candidates.begin(), candidates.end()),
-                     candidates.end());
+    // 先按候选排序，再按候选去重（保留第一条描述）。
+    std::stable_sort(candidates.begin(), candidates.end(),
+                     [](const auto& a, const auto& b) {
+                         return a.first < b.first;
+                     });
+    candidates.erase(
+        std::unique(candidates.begin(), candidates.end(),
+                    [](const auto& a, const auto& b) {
+                        return a.first == b.first;
+                    }),
+        candidates.end());
 
-    for (const std::string& candidate : candidates)
+    for (const auto& candidate : candidates)
     {
         if (prefix.empty() ||
-            candidate.compare(0, prefix.size(), prefix) == 0)
+            candidate.first.compare(0, prefix.size(), prefix) == 0)
         {
-            std::cout << candidate << '\n';
+            std::cout << candidate.first;
+            if (describe && !candidate.second.empty())
+                std::cout << '\t' << candidate.second;
+            std::cout << '\n';
         }
     }
 }

@@ -4,12 +4,27 @@
 # Zsh completion for path-keeper (pk).
 
 _pk() {
-    local -a commands kinds indices editors aliases
+    local -a commands kinds indices described_indices editors aliases
     commands=(${(f)"$(command pk completion commands 2>/dev/null)"})
     kinds=(commands indices aliases directories editors)
     indices=(${(f)"$(command pk completion indices 2>/dev/null)"})
     editors=(${(f)"$(command pk completion editors 2>/dev/null)"})
     aliases=(${(f)"$(command pk completion aliases 2>/dev/null)"})
+
+    # Build "index:command" entries so the completion menu shows the command
+    # each index refers to.  Colons in the command are escaped for _describe.
+    local line value desc
+    for line in ${(f)"$(command pk completion indices --describe 2>/dev/null)"}; do
+        value=${line%%$'\t'*}
+        if [[ $line == *$'\t'* ]]; then
+            desc=${line#*$'\t'}
+            desc=${desc//\\/\\\\}
+            desc=${desc//:/\\:}
+            described_indices+=("$value:$desc")
+        else
+            described_indices+=("$value")
+        fi
+    done
 
     if (( CURRENT == 2 )); then
         _describe -t commands 'pk command' commands
@@ -23,7 +38,7 @@ _pk() {
             elif [[ $words[3] == remove ]]; then
                 _describe -t aliases 'alias' aliases
             elif [[ $words[3] == add ]] && (( CURRENT >= 5 )); then
-                _describe -t indices 'command index' indices
+                _describe -t indices 'command index' described_indices
             fi
             ;;
         completion|complete)
@@ -37,7 +52,7 @@ _pk() {
                 '1:target:(global $indices)'
             ;;
         -e|--execute|-p|--point|-c|--configure|-r|--run|run)
-            _describe -t indices 'command index' indices
+            _describe -t indices 'command index' described_indices
             ;;
     esac
 }
